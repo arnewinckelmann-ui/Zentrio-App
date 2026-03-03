@@ -135,6 +135,7 @@ export default function App() {
   // Edit Mitarbeiter
   const [editingMitarbeiterId, setEditingMitarbeiterId] = useState(null);
   const [editMitarbeiterName, setEditMitarbeiterName] = useState("");
+  const [editMitarbeiterEmail, setEditMitarbeiterEmail] = useState("");
   const [editMitarbeiterStunden, setEditMitarbeiterStunden] = useState("");
   const [editMitarbeiterUrlaub, setEditMitarbeiterUrlaub] = useState("");
   const [editMitarbeiterRolle, setEditMitarbeiterRolle] = useState("");
@@ -265,8 +266,15 @@ export default function App() {
         email: authEmail,
         password: authPassword,
       });
-      if (error) alert(error.message);
-      else alert("Erfolgreich registriert!");
+      if (error) {
+        alert(error.message);
+      } else {
+        alert(
+          "Fast geschafft! Bitte checke jetzt dein E-Mail-Postfach und klicke auf den Bestätigungslink."
+        );
+        setIsSignUp(false);
+        setAuthPassword("");
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email: authEmail,
@@ -313,19 +321,17 @@ export default function App() {
       setIsLoading(false);
       return;
     }
-    await supabase
-      .from("mitarbeiter")
-      .insert([
-        {
-          name: godAdminName,
-          email: godAdminEmail,
-          rolle: "Inhaber",
-          darf_schichten_aendern: true,
-          wochenstunden: 40,
-          urlaubs_anspruch: 30,
-          unternehmen_id: comp.id,
-        },
-      ]);
+    await supabase.from("mitarbeiter").insert([
+      {
+        name: godAdminName,
+        email: godAdminEmail,
+        rolle: "Inhaber",
+        darf_schichten_aendern: true,
+        wochenstunden: 40,
+        urlaubs_anspruch: 30,
+        unternehmen_id: comp.id,
+      },
+    ]);
     setGodNewCompName("");
     setGodCompSitz("");
     setGodCompInhaber("");
@@ -409,18 +415,16 @@ export default function App() {
         "Fehler: Der Mitarbeiter hat in diesem Zeitraum bereits einen Eintrag."
       );
 
-    await supabase
-      .from("schichten")
-      .insert([
-        {
-          mitarbeiter_id: schuleMitarbeiter,
-          startzeit: start.toISOString(),
-          endzeit: ende.toISOString(),
-          typ: "Schule/Uni",
-          status: "Genehmigt",
-          unternehmen_id: activeUnternehmenId,
-        },
-      ]);
+    await supabase.from("schichten").insert([
+      {
+        mitarbeiter_id: schuleMitarbeiter,
+        startzeit: start.toISOString(),
+        endzeit: ende.toISOString(),
+        typ: "Schule/Uni",
+        status: "Genehmigt",
+        unternehmen_id: activeUnternehmenId,
+      },
+    ]);
     ladeDaten();
     setSchuleStartDatum("");
     setSchuleEndDatum("");
@@ -444,18 +448,16 @@ export default function App() {
         "Fehler: Es existieren bereits Einträge in diesem Zeitraum."
       );
 
-    await supabase
-      .from("schichten")
-      .insert([
-        {
-          mitarbeiter_id: urlaubMitarbeiter,
-          startzeit: start.toISOString(),
-          endzeit: ende.toISOString(),
-          typ: "Urlaub",
-          status: "Beantragt",
-          unternehmen_id: activeUnternehmenId,
-        },
-      ]);
+    await supabase.from("schichten").insert([
+      {
+        mitarbeiter_id: urlaubMitarbeiter,
+        startzeit: start.toISOString(),
+        endzeit: ende.toISOString(),
+        typ: "Urlaub",
+        status: "Beantragt",
+        unternehmen_id: activeUnternehmenId,
+      },
+    ]);
     ladeDaten();
     setUrlaubStart("");
     setUrlaubEnde("");
@@ -471,16 +473,14 @@ export default function App() {
 
   async function seminarSpeichern(e) {
     e.preventDefault();
-    await supabase
-      .from("seminare")
-      .insert([
-        {
-          titel: seminarTitel,
-          startzeit: seminarStart,
-          endzeit: seminarEnde,
-          unternehmen_id: activeUnternehmenId,
-        },
-      ]);
+    await supabase.from("seminare").insert([
+      {
+        titel: seminarTitel,
+        startzeit: seminarStart,
+        endzeit: seminarEnde,
+        unternehmen_id: activeUnternehmenId,
+      },
+    ]);
     ladeDaten();
     setSeminarTitel("");
     setSeminarStart("");
@@ -503,18 +503,16 @@ export default function App() {
         "Fehler: Der Mitarbeiter ist zu dieser Zeit bereits verplant."
       );
 
-    await supabase
-      .from("schichten")
-      .insert([
-        {
-          mitarbeiter_id: mId,
-          startzeit: sem.startzeit,
-          endzeit: sem.endzeit,
-          typ: "Seminar",
-          status: "Genehmigt",
-          unternehmen_id: activeUnternehmenId,
-        },
-      ]);
+    await supabase.from("schichten").insert([
+      {
+        mitarbeiter_id: mId,
+        startzeit: sem.startzeit,
+        endzeit: sem.endzeit,
+        typ: "Seminar",
+        status: "Genehmigt",
+        unternehmen_id: activeUnternehmenId,
+      },
+    ]);
     ladeDaten();
   }
 
@@ -526,28 +524,28 @@ export default function App() {
 
   async function mitarbeiterSpeichern(e) {
     e.preventDefault();
-    await supabase
-      .from("mitarbeiter")
-      .insert([
-        {
-          name: neuerName,
-          email: neueEmail,
-          rolle: neueRolle,
-          wochenstunden: parseFloat(neueWochenstunden) || 0,
-          urlaubs_anspruch: parseInt(neuerUrlaubsAnspruch) || 24,
-          darf_schichten_aendern: neueFreigabe,
-          unternehmen_id: activeUnternehmenId,
-        },
-      ]);
+    await supabase.from("mitarbeiter").insert([
+      {
+        name: neuerName,
+        email: neueEmail,
+        rolle: neueRolle,
+        wochenstunden: parseFloat(neueWochenstunden) || 0,
+        urlaubs_anspruch: parseInt(neuerUrlaubsAnspruch) || 24,
+        darf_schichten_aendern: neueFreigabe,
+        unternehmen_id: activeUnternehmenId,
+      },
+    ]);
     ladeDaten();
     setNeuerName("");
     setNeueEmail("");
   }
+
   async function mitarbeiterAktualisieren(id) {
     await supabase
       .from("mitarbeiter")
       .update({
         name: editMitarbeiterName,
+        email: editMitarbeiterEmail,
         wochenstunden: parseFloat(editMitarbeiterStunden),
         urlaubs_anspruch: parseInt(editMitarbeiterUrlaub),
         rolle: editMitarbeiterRolle,
@@ -1539,6 +1537,19 @@ export default function App() {
                               }}
                             />
                             <br />
+                            <input
+                              type="email"
+                              value={editMitarbeiterEmail}
+                              onChange={(e) =>
+                                setEditMitarbeiterEmail(e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                padding: "8px",
+                                marginBottom: "8px",
+                              }}
+                            />
+                            <br />
                             <select
                               value={editMitarbeiterRolle}
                               onChange={(e) =>
@@ -1744,6 +1755,7 @@ export default function App() {
                               onClick={() => {
                                 setEditingMitarbeiterId(m.id);
                                 setEditMitarbeiterName(m.name);
+                                setEditMitarbeiterEmail(m.email);
                                 setEditMitarbeiterStunden(m.wochenstunden);
                                 setEditMitarbeiterUrlaub(m.urlaubs_anspruch);
                                 setEditMitarbeiterRolle(m.rolle);
