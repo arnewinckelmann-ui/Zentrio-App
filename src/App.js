@@ -79,6 +79,31 @@ const ZentrioLogo = ({ size = 28 }) => (
   </svg>
 );
 
+// --- NEU: MAGISCHER FARB-GENERATOR ---
+function getMitarbeiterColor(name) {
+  if (!name) return "#94a3b8"; // Grau, wenn kein Name da ist (z.B. "Alle")
+  const colors = [
+    "#f87171", // Rot
+    "#fb923c", // Orange
+    "#fbbf24", // Bernstein
+    "#a3e635", // Limette
+    "#34d399", // Smaragdgrün
+    "#2dd4bf", // Türkis
+    "#22d3ee", // Cyan
+    "#38bdf8", // Hellblau
+    "#818cf8", // Indigo
+    "#a78bfa", // Violett
+    "#e879f9", // Pink
+    "#f43f5e", // Rose
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+}
+
 function getMontag(datum) {
   const d = new Date(datum);
   const tag = d.getDay();
@@ -102,7 +127,7 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- NEU: TOAST STATE ---
+  // --- TOAST STATE ---
   const [toast, setToast] = useState({
     message: "",
     type: "success",
@@ -113,7 +138,7 @@ export default function App() {
     setToast({ message, type, visible: true });
     setTimeout(() => {
       setToast((prev) => ({ ...prev, visible: false }));
-    }, 3500); // Verschwindet nach 3.5 Sekunden
+    }, 3500);
   }
 
   const [userProfiles, setUserProfiles] = useState([]);
@@ -1595,6 +1620,7 @@ export default function App() {
                       const diff = (ist - soll).toFixed(1);
                       const diffCol =
                         diff > 0 ? "#10b981" : diff < 0 ? "#ef4444" : "#94a3b8";
+                      const magicColor = getMitarbeiterColor(m.name);
 
                       return editingMitarbeiterId === m.id ? (
                         <tr
@@ -1725,13 +1751,31 @@ export default function App() {
                         >
                           <td style={tdStyle}>
                             <strong
-                              style={{ color: "#f8fafc", fontSize: "14px" }}
+                              style={{
+                                color: "#f8fafc",
+                                fontSize: "14px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                              }}
                             >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  borderRadius: "50%",
+                                  backgroundColor: magicColor,
+                                }}
+                              ></div>
                               {m.name}
                             </strong>
                             <br />
                             <span
-                              style={{ fontSize: "12px", color: "#94a3b8" }}
+                              style={{
+                                fontSize: "12px",
+                                color: "#94a3b8",
+                                marginLeft: "22px",
+                              }}
                             >
                               {m.email}
                             </span>
@@ -1742,6 +1786,7 @@ export default function App() {
                                 alignItems: "center",
                                 gap: "8px",
                                 marginTop: "8px",
+                                marginLeft: "22px",
                               }}
                             >
                               <span
@@ -2090,6 +2135,7 @@ export default function App() {
                   const isMultiDay =
                     new Date(s.startzeit).toDateString() !==
                     new Date(s.endzeit).toDateString();
+                  const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
                   return (
                     <div
                       key={s.id}
@@ -2106,29 +2152,50 @@ export default function App() {
                       }}
                     >
                       <div>
-                        <strong style={{ color: "#10b981", fontSize: "15px" }}>
+                        <strong
+                          style={{
+                            color: "#10b981",
+                            fontSize: "15px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
                           {s.mitarbeiter?.name}
                         </strong>
-                        <br />
-                        {isMultiDay ? (
-                          <span style={{ color: "#94a3b8", fontSize: "13px" }}>
-                            Vom{" "}
-                            <strong style={{ color: "#cbd5e1" }}>
-                              {new Date(s.startzeit).toLocaleDateString()}
-                            </strong>{" "}
-                            bis{" "}
-                            <strong style={{ color: "#cbd5e1" }}>
-                              {new Date(s.endzeit).toLocaleDateString()}
-                            </strong>
-                          </span>
-                        ) : (
-                          <span style={{ color: "#94a3b8", fontSize: "13px" }}>
-                            Am{" "}
-                            <strong style={{ color: "#cbd5e1" }}>
-                              {new Date(s.startzeit).toLocaleDateString()}
-                            </strong>
-                          </span>
-                        )}
+                        <div style={{ marginTop: "4px" }}>
+                          {isMultiDay ? (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Vom{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>{" "}
+                              bis{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.endzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Am{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {canEdit && (
                         <button
@@ -2235,91 +2302,111 @@ export default function App() {
             <div style={{ marginTop: "20px" }}>
               {schichten
                 .filter((s) => s.typ === "Urlaub" && s.status === "Beantragt")
-                .map((u) => (
-                  <div
-                    key={u.id}
-                    style={{
-                      background: "#111827",
-                      padding: "25px",
-                      marginBottom: "15px",
-                      borderLeft: "4px solid #f59e0b",
-                      borderRadius: "12px",
-                      border: "1px solid #1e293b",
-                      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <div style={{ fontSize: "14px", color: "#e2e8f0" }}>
-                      <strong style={{ color: "#f59e0b", fontSize: "16px" }}>
-                        {u.mitarbeiter?.name}
-                      </strong>{" "}
-                      beantragt Urlaub vom{" "}
-                      <strong style={{ color: "#fff" }}>
-                        {new Date(u.startzeit).toLocaleDateString()}
-                      </strong>{" "}
-                      bis{" "}
-                      <strong style={{ color: "#fff" }}>
-                        {new Date(u.endzeit).toLocaleDateString()}
-                      </strong>
+                .map((u) => {
+                  const mColor = getMitarbeiterColor(u.mitarbeiter?.name);
+                  return (
+                    <div
+                      key={u.id}
+                      style={{
+                        background: "#111827",
+                        padding: "25px",
+                        marginBottom: "15px",
+                        borderLeft: "4px solid #f59e0b",
+                        borderRadius: "12px",
+                        border: "1px solid #1e293b",
+                        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                      }}
+                    >
+                      <div style={{ fontSize: "14px", color: "#e2e8f0" }}>
+                        <strong
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "16px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
+                          {u.mitarbeiter?.name}
+                        </strong>{" "}
+                        <br />
+                        beantragt Urlaub vom{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.startzeit).toLocaleDateString()}
+                        </strong>{" "}
+                        bis{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.endzeit).toLocaleDateString()}
+                        </strong>
+                      </div>
+                      {isAdmin ? (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            gap: "12px",
+                          }}
+                        >
+                          <button
+                            onClick={() => urlaubGenehmigen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #10b981, #059669)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                              boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
+                            }}
+                          >
+                            Genehmigen
+                          </button>
+                          <button
+                            onClick={() => schichtLoeschen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #ef4444, #dc2626)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                              boxShadow: "0 2px 8px rgba(239,68,68,0.3)",
+                            }}
+                          >
+                            Ablehnen
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: "15px",
+                            fontSize: "12px",
+                            color: "#94a3b8",
+                            background: "#0b1120",
+                            padding: "10px",
+                            borderRadius: "6px",
+                            display: "inline-block",
+                            border: "1px solid #1e293b",
+                          }}
+                        >
+                          Wartet auf Freigabe.
+                        </div>
+                      )}
                     </div>
-                    {isAdmin ? (
-                      <div
-                        style={{
-                          marginTop: "20px",
-                          display: "flex",
-                          gap: "12px",
-                        }}
-                      >
-                        <button
-                          onClick={() => urlaubGenehmigen(u.id)}
-                          style={{
-                            background:
-                              "linear-gradient(135deg, #10b981, #059669)",
-                            color: "#fff",
-                            padding: "10px 20px",
-                            border: "none",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            fontWeight: "bold",
-                            boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
-                          }}
-                        >
-                          Genehmigen
-                        </button>
-                        <button
-                          onClick={() => schichtLoeschen(u.id)}
-                          style={{
-                            background:
-                              "linear-gradient(135deg, #ef4444, #dc2626)",
-                            color: "#fff",
-                            padding: "10px 20px",
-                            border: "none",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            fontWeight: "bold",
-                            boxShadow: "0 2px 8px rgba(239,68,68,0.3)",
-                          }}
-                        >
-                          Ablehnen
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          marginTop: "15px",
-                          fontSize: "12px",
-                          color: "#94a3b8",
-                          background: "#0b1120",
-                          padding: "10px",
-                          borderRadius: "6px",
-                          display: "inline-block",
-                          border: "1px solid #1e293b",
-                        }}
-                      >
-                        Wartet auf Freigabe.
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               {schichten.filter(
                 (s) => s.typ === "Urlaub" && s.status === "Beantragt"
               ).length === 0 && (
@@ -2513,10 +2600,41 @@ export default function App() {
                         }}
                       >
                         <strong>Teilnehmer:</strong>
-                        <br />
-                        <span style={{ lineHeight: "1.6", color: "#94a3b8" }}>
-                          {assigned.map((a) => a.mitarbeiter?.name).join(", ")}
-                        </span>
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                          }}
+                        >
+                          {assigned.map((a) => {
+                            const mColor = getMitarbeiterColor(
+                              a.mitarbeiter?.name
+                            );
+                            return (
+                              <span
+                                key={a.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: mColor,
+                                  }}
+                                ></div>
+                                {a.mitarbeiter?.name}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     ) : (
                       <div
@@ -2991,6 +3109,7 @@ function StudioKalenderKachel({
               >
                 {schichtenAnDemTag.map((s) => {
                   const theme = getThemeColors(s.typ);
+                  const mColor = getMitarbeiterColor(s.mitarbeiter?.name); // <-- NEU: FARB-GENERATOR IM EINSATZ
                   return (
                     <div
                       key={s.id}
@@ -3042,12 +3161,24 @@ function StudioKalenderKachel({
                       </div>
                       <div
                         style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
                           color: theme.text,
                           fontWeight: "bold",
                           marginTop: "4px",
                           fontSize: "13px",
                         }}
                       >
+                        {/* --- NEU: FARBIGER PUNKT --- */}
+                        <div
+                          style={{
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            backgroundColor: mColor,
+                          }}
+                        ></div>
                         {s.mitarbeiter?.name || "Alle"}
                       </div>
 
