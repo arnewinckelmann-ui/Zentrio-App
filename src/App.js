@@ -102,6 +102,20 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // --- NEU: TOAST STATE ---
+  const [toast, setToast] = useState({
+    message: "",
+    type: "success",
+    visible: false,
+  });
+
+  function showToast(message, type = "success") {
+    setToast({ message, type, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3500); // Verschwindet nach 3.5 Sekunden
+  }
+
   const [userProfiles, setUserProfiles] = useState([]);
   const [activeUnternehmenId, setActiveUnternehmenId] = useState(null);
   const [alleUnternehmen, setAlleUnternehmen] = useState([]);
@@ -267,10 +281,11 @@ export default function App() {
         password: authPassword,
       });
       if (error) {
-        alert(error.message);
+        showToast(error.message, "error");
       } else {
-        alert(
-          "Fast geschafft! Bitte checke jetzt dein E-Mail-Postfach und klicke auf den Bestätigungslink."
+        showToast(
+          "Fast geschafft! Bitte checke jetzt dein E-Mail-Postfach.",
+          "success"
         );
         setIsSignUp(false);
         setAuthPassword("");
@@ -280,7 +295,7 @@ export default function App() {
         email: authEmail,
         password: authPassword,
       });
-      if (error) alert("Login fehlgeschlagen: " + error.message);
+      if (error) showToast("Login fehlgeschlagen: " + error.message, "error");
     }
     setIsLoading(false);
   }
@@ -291,8 +306,8 @@ export default function App() {
     );
     if (email) {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) alert(error.message);
-      else alert("Reset-Link wurde gesendet.");
+      if (error) showToast(error.message, "error");
+      else showToast("Reset-Link wurde gesendet.", "success");
     }
   }
 
@@ -317,7 +332,7 @@ export default function App() {
       .select()
       .single();
     if (compErr) {
-      alert(compErr.message);
+      showToast(compErr.message, "error");
       setIsLoading(false);
       return;
     }
@@ -340,7 +355,7 @@ export default function App() {
     setGodAdminEmail("");
     ladeSystemDaten();
     setIsLoading(false);
-    alert("Mandant erfolgreich angelegt.");
+    showToast("Mandant erfolgreich angelegt.", "success");
   }
 
   async function godDeleteCompany(id) {
@@ -356,6 +371,7 @@ export default function App() {
     await supabase.from("mitarbeiter").delete().eq("unternehmen_id", id);
     await supabase.from("unternehmen").delete().eq("id", id);
     ladeSystemDaten();
+    showToast("Mandant gelöscht.", "success");
   }
 
   // --- BUSINESS LOGIC ---
@@ -401,7 +417,8 @@ export default function App() {
     e.preventDefault();
     const start = new Date(`${schuleStartDatum}T${schuleStartZeit}:00`);
     const ende = new Date(`${schuleEndDatum}T${schuleEndZeit}:00`);
-    if (start >= ende) return alert("Ende muss nach Start liegen.");
+    if (start >= ende)
+      return showToast("Das Ende muss nach dem Start liegen.", "error");
 
     const ueberschneidung = schichten.some(
       (s) =>
@@ -411,8 +428,9 @@ export default function App() {
         ende > new Date(s.startzeit)
     );
     if (ueberschneidung)
-      return alert(
-        "Fehler: Der Mitarbeiter hat in diesem Zeitraum bereits einen Eintrag."
+      return showToast(
+        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
+        "error"
       );
 
     await supabase.from("schichten").insert([
@@ -428,13 +446,15 @@ export default function App() {
     ladeDaten();
     setSchuleStartDatum("");
     setSchuleEndDatum("");
+    showToast("Ausbildung eingetragen.", "success");
   }
 
   async function urlaubBeantragen(e) {
     e.preventDefault();
     const start = new Date(urlaubStart + "T00:00:00");
     const ende = new Date(urlaubEnde + "T23:59:59");
-    if (start > ende) return alert("Ende muss nach Start liegen.");
+    if (start > ende)
+      return showToast("Das Ende muss nach dem Start liegen.", "error");
 
     const ueberschneidung = schichten.some(
       (s) =>
@@ -444,8 +464,9 @@ export default function App() {
         ende > new Date(s.startzeit)
     );
     if (ueberschneidung)
-      return alert(
-        "Fehler: Es existieren bereits Einträge in diesem Zeitraum."
+      return showToast(
+        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
+        "error"
       );
 
     await supabase.from("schichten").insert([
@@ -461,6 +482,7 @@ export default function App() {
     ladeDaten();
     setUrlaubStart("");
     setUrlaubEnde("");
+    showToast("Urlaub erfolgreich beantragt.", "success");
   }
 
   async function urlaubGenehmigen(id) {
@@ -469,6 +491,7 @@ export default function App() {
       .update({ status: "Genehmigt" })
       .eq("id", id);
     ladeDaten();
+    showToast("Urlaub wurde genehmigt.", "success");
   }
 
   async function seminarSpeichern(e) {
@@ -485,6 +508,7 @@ export default function App() {
     setSeminarTitel("");
     setSeminarStart("");
     setSeminarEnde("");
+    showToast("Seminar geplant.", "success");
   }
 
   async function seminarZuweisen(sem, mId) {
@@ -499,8 +523,9 @@ export default function App() {
         ende > new Date(s.startzeit)
     );
     if (ueberschneidung)
-      return alert(
-        "Fehler: Der Mitarbeiter ist zu dieser Zeit bereits verplant."
+      return showToast(
+        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
+        "error"
       );
 
     await supabase.from("schichten").insert([
@@ -514,12 +539,14 @@ export default function App() {
       },
     ]);
     ladeDaten();
+    showToast("Mitarbeiter zugewiesen.", "success");
   }
 
   async function schichtLoeschen(id) {
-    if (!window.confirm("Diesen Eintrag löschen?")) return;
+    if (!window.confirm("Diesen Eintrag wirklich löschen?")) return;
     await supabase.from("schichten").delete().eq("id", id);
     ladeDaten();
+    showToast("Eintrag entfernt.", "success");
   }
 
   async function mitarbeiterSpeichern(e) {
@@ -538,6 +565,7 @@ export default function App() {
     ladeDaten();
     setNeuerName("");
     setNeueEmail("");
+    showToast("Mitarbeiter hinzugefügt.", "success");
   }
 
   async function mitarbeiterAktualisieren(id) {
@@ -554,12 +582,14 @@ export default function App() {
       .eq("id", id);
     setEditingMitarbeiterId(null);
     ladeDaten();
+    showToast("Änderungen gespeichert.", "success");
   }
 
   async function mitarbeiterLoeschen(id) {
     if (!window.confirm("Diesen Mitarbeiter aus dem System entfernen?")) return;
     await supabase.from("mitarbeiter").delete().eq("id", id);
     ladeDaten();
+    showToast("Mitarbeiter gelöscht.", "success");
   }
 
   async function studioSpeichern(e) {
@@ -569,12 +599,14 @@ export default function App() {
       .insert([{ name: neuesStudioName, unternehmen_id: activeUnternehmenId }]);
     ladeDaten();
     setNeuesStudioName("");
+    showToast("Studio hinzugefügt.", "success");
   }
 
   async function studioLoeschen(id) {
     if (!window.confirm("Diesen Standort löschen?")) return;
     await supabase.from("studios").delete().eq("id", id);
     ladeDaten();
+    showToast("Studio gelöscht.", "success");
   }
 
   async function attestNachtragen(event, id) {
@@ -589,6 +621,9 @@ export default function App() {
         .data.publicUrl;
       await supabase.from("schichten").update({ attest_url: url }).eq("id", id);
       ladeDaten();
+      showToast("Attest hochgeladen.", "success");
+    } else {
+      showToast("Upload fehlgeschlagen.", "error");
     }
     document.body.style.cursor = "default";
   }
@@ -710,6 +745,39 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* TOAST NOTIFICATION RENDERER */}
+        {toast.visible && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: "40px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: toast.type === "error" ? "#ef4444" : "#10b981",
+              color: "#fff",
+              padding: "14px 24px",
+              borderRadius: "10px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+              zIndex: 9999,
+              fontWeight: "bold",
+              fontSize: "14px",
+              animation:
+                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <style>{`
+              @keyframes slideUpToast {
+                from { transform: translate(-50%, 100%); opacity: 0; }
+                to { transform: translate(-50%, 0); opacity: 1; }
+              }
+            `}</style>
+            {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
+          </div>
+        )}
       </div>
     );
   }
@@ -818,7 +886,19 @@ export default function App() {
         maxWidth: "1400px",
       }}
     >
-      <style>{`body { background-color: #0b1120; margin: 0; } input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; }`}</style>
+      <style>{`
+        body { background-color: #0b1120; margin: 0; } 
+        input[type="time"]::-webkit-calendar-picker-indicator, 
+        input[type="date"]::-webkit-calendar-picker-indicator, 
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { 
+          filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); 
+          cursor: pointer; 
+        }
+        @keyframes slideUpToast {
+          from { transform: translate(-50%, 100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
 
       <header
         style={{
@@ -1861,6 +1941,7 @@ export default function App() {
                 attestNachtragen={attestNachtragen}
                 canEdit={canEdit}
                 currentUnternehmenId={activeUnternehmenId}
+                showToast={showToast}
               />
             ))}
           <StudioKalenderKachel
@@ -1873,6 +1954,7 @@ export default function App() {
             attestNachtragen={attestNachtragen}
             canEdit={canEdit}
             currentUnternehmenId={activeUnternehmenId}
+            showToast={showToast}
           />
         </div>
       )}
@@ -2459,6 +2541,33 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* TOAST NOTIFICATION RENDERER */}
+      {toast.visible && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: toast.type === "error" ? "#ef4444" : "#10b981",
+            color: "#fff",
+            padding: "14px 24px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            fontWeight: "bold",
+            fontSize: "14px",
+            animation:
+              "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
+        </div>
+      )}
     </div>
   );
 }
@@ -2474,6 +2583,7 @@ function StudioKalenderKachel({
   attestNachtragen,
   canEdit,
   currentUnternehmenId,
+  showToast,
 }) {
   const meineSchichten = alleSchichten.filter((s) =>
     isAusserHaus ? s.studio_id === null : s.studio_id === studio.id
@@ -2524,19 +2634,20 @@ function StudioKalenderKachel({
       border: "#0ea5e9",
       bg: "rgba(14, 165, 233, 0.05)",
       text: "#7dd3fc",
-    }; // Arbeit
+    };
   }
 
   async function schichtLoeschen(id) {
     if (!window.confirm("Eintrag wirklich löschen?")) return;
     await supabase.from("schichten").delete().eq("id", id);
     ladeDaten();
+    showToast("Eintrag gelöscht.", "success");
   }
 
   async function neueSchichtSpeichern(event) {
     event.preventDefault();
     if (!schichtMitarbeiter && schichtTyp !== "Feiertag")
-      return alert("Mitarbeiter auswählen!");
+      return showToast("Bitte wähle einen Mitarbeiter aus!", "error");
 
     setIsUploading(true);
     let hochgeladeneUrl = null;
@@ -2577,7 +2688,10 @@ function StudioKalenderKachel({
       });
       if (ueberschneidung) {
         setIsUploading(false);
-        return alert("Achtung: Doppelbuchung erkannt!");
+        return showToast(
+          "Achtung: Doppelbuchung! Mitarbeiter ist da schon verplant.",
+          "error"
+        );
       }
     }
 
@@ -2598,6 +2712,7 @@ function StudioKalenderKachel({
     setAktivesDatum(null);
     setAttestFile(null);
     ladeDaten();
+    showToast("Schicht erfolgreich gespeichert.", "success");
   }
 
   return (
