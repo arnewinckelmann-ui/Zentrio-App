@@ -148,7 +148,6 @@ export default function App() {
   const [aktivesStudioView, setAktivesStudioView] = useState("all");
   const [wochenStart, setWochenStart] = useState(() => getMontag(new Date()));
 
-  // Business Tab Forms
   const [neuerName, setNeuerName] = useState("");
   const [neueEmail, setNeueEmail] = useState("");
   const [neueWochenstunden, setNeueWochenstunden] = useState("");
@@ -165,9 +164,7 @@ export default function App() {
   const [editMitarbeiterRolle, setEditMitarbeiterRolle] = useState("");
   const [editMitarbeiterFreigabe, setEditMitarbeiterFreigabe] = useState(false);
 
-  // Seminar Multi-Select State
   const [selectedSeminarMembers, setSelectedSeminarMembers] = useState({});
-
   const [urlaubMitarbeiter, setUrlaubMitarbeiter] = useState("");
   const [urlaubStart, setUrlaubStart] = useState("");
   const [urlaubEnde, setUrlaubEnde] = useState("");
@@ -462,6 +459,15 @@ export default function App() {
     showToast("Beantragt.", "success");
   }
 
+  async function urlaubGenehmigen(id) {
+    await supabase
+      .from("schichten")
+      .update({ status: "Genehmigt" })
+      .eq("id", id);
+    ladeDaten();
+    showToast("Urlaub wurde genehmigt.", "success");
+  }
+
   async function seminarSpeichern(e) {
     e.preventDefault();
     await supabase
@@ -495,7 +501,7 @@ export default function App() {
     await supabase.from("schichten").insert(newShifts);
     setSelectedSeminarMembers((prev) => ({ ...prev, [sem.id]: [] }));
     ladeDaten();
-    showToast(`${ids.length} Personen zugewiesen.`, "success");
+    showToast(`${ids.length} zugewiesen.`, "success");
   }
 
   async function schichtLoeschen(id) {
@@ -543,6 +549,13 @@ export default function App() {
     showToast("Gespeichert.", "success");
   }
 
+  async function mitarbeiterLoeschen(id) {
+    if (!window.confirm("Mitarbeiter löschen?")) return;
+    await supabase.from("mitarbeiter").delete().eq("id", id);
+    ladeDaten();
+    showToast("Mitarbeiter gelöscht.", "success");
+  }
+
   async function studioSpeichern(e) {
     e.preventDefault();
     await supabase
@@ -551,6 +564,32 @@ export default function App() {
     ladeDaten();
     setNeuesStudioName("");
     showToast("Studio angelegt.", "success");
+  }
+
+  async function studioLoeschen(id) {
+    if (!window.confirm("Standort löschen?")) return;
+    await supabase.from("studios").delete().eq("id", id);
+    ladeDaten();
+    showToast("Studio gelöscht.", "success");
+  }
+
+  async function attestNachtragen(event, id) {
+    const f = event.target.files[0];
+    if (!f) return;
+    document.body.style.cursor = "wait";
+    const { data, error } = await supabase.storage
+      .from("atteste")
+      .upload(`${Date.now()}-${f.name}`, f);
+    if (!error) {
+      const url = supabase.storage.from("atteste").getPublicUrl(data.path)
+        .data.publicUrl;
+      await supabase.from("schichten").update({ attest_url: url }).eq("id", id);
+      ladeDaten();
+      showToast("Attest hochgeladen.", "success");
+    } else {
+      showToast("Upload fehlgeschlagen.", "error");
+    }
+    document.body.style.cursor = "default";
   }
 
   if (!session) {
@@ -692,6 +731,97 @@ export default function App() {
     );
   }
 
+  if (session && !activeUnternehmenId && !isGod) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#0b1120",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <div
+          style={{
+            background: "#111827",
+            padding: "40px",
+            borderRadius: "16px",
+            border: "1px solid #1e293b",
+            width: "450px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          }}
+        >
+          <h2
+            style={{
+              color: "#f8fafc",
+              textAlign: "center",
+              marginTop: 0,
+              fontSize: "20px",
+            }}
+          >
+            Workspace auswählen
+          </h2>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              marginTop: "25px",
+            }}
+          >
+            {userProfiles.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setActiveUnternehmenId(p.unternehmen_id);
+                  setAktiverTab("dienstplan");
+                }}
+                style={{
+                  ...btnStyle,
+                  padding: "18px",
+                  fontSize: "16px",
+                  background: "rgba(14, 165, 233, 0.05)",
+                  border: "1px solid #0ea5e9",
+                  textAlign: "left",
+                  borderRadius: "10px",
+                }}
+              >
+                <strong style={{ color: "#f8fafc" }}>
+                  {p.unternehmen?.name}
+                </strong>{" "}
+                <br />
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "#94a3b8",
+                    fontWeight: "normal",
+                  }}
+                >
+                  Berechtigung: {p.rolle}
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              ...btnStyle,
+              border: "none",
+              color: "#ef4444",
+              background: "transparent",
+              width: "100%",
+              marginTop: "20px",
+            }}
+          >
+            Abmelden
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="App"
@@ -706,22 +836,33 @@ export default function App() {
       }}
     >
       <style>{`
+        body { background-color: #0b1120; margin: 0; } 
+        input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
+        @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* WIRD NUR BEIM DRUCKEN ODER PDF EXPORT AKTIVIERT */
         @media print {
           @page { size: landscape; margin: 8mm; }
-          body, .App { background: white !important; color: black !important; padding: 0 !important; }
+          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          .print-header-box { display: flex !important; background: transparent !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; }
-          .print-header-box h2 { font-size: 16px !important; color: #000 !important; font-weight: bold !important; margin: 0 !important; }
-          .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 20px !important; page-break-inside: avoid !important; }
-          h2.print-text-dark { color: #000 !important; font-size: 16px !important; border-bottom: 1px solid #ccc !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
-          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 4px !important; width: 100% !important; border: none !important; }
-          .print-day { background: #fff !important; border: 1px solid #000 !important; min-height: 120px !important; display: block !important; border-radius: 0 !important; }
-          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; }
-          .print-day-header span { color: #333 !important; font-size: 10px !important; display: block !important; margin-top: 2px !important; }
-          .print-shift-container { padding: 4px !important; display: block !important; }
-          .print-shift { display: block !important; margin-bottom: 4px !important; padding: 5px !important; border: 1px solid #ccc !important; border-left: 4px solid #000 !important; background: #f9f9f9 !important; page-break-inside: avoid !important; }
-          .print-shift-time { font-size: 10px !important; color: #000 !important; font-weight: normal !important; display: block !important; }
-          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: block !important; margin-top: 2px !important; }
+          .print-header-box { display: flex !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; justify-content: flex-start !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; }
+          .print-header-box h2 { font-size: 16px !important; color: #000 !important; margin: 0 !important; font-weight: bold !important; }
+          .print-header-box strong { color: #000 !important; }
+          .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; page-break-inside: avoid !important; }
+          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
+          
+          /* TABELLEN-OPTIK OHNE LÜCKEN (STRIKTES GRID) */
+          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
+          .print-day { background: #fff !important; border: none !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; min-height: 120px !important; box-shadow: none !important; display: block !important; }
+          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 6px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; line-height: 1.2 !important; }
+          .print-day-header span { color: #475569 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
+          
+          /* SCHICHTEN SAUBER UNTEREINANDER STAPELN */
+          .print-shift-container { padding: 6px !important; display: block !important; }
+          .print-shift-row { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          .print-shift { display: block !important; margin: 0 0 6px 0 !important; min-height: auto !important; padding: 6px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
+          .print-shift-time { font-size: 10px !important; color: #333 !important; white-space: nowrap !important; font-weight: normal !important; display: block !important; margin-bottom: 2px !important; }
+          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
@@ -755,7 +896,9 @@ export default function App() {
             >
               ZENTRIO
             </h1>
-            <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+            <div
+              style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}
+            >
               Workspace:{" "}
               <strong
                 style={{
@@ -767,13 +910,21 @@ export default function App() {
                   : userProfiles.find(
                       (p) => p.unternehmen_id === activeUnternehmenId
                     )?.unternehmen?.name || "Kunde"}
-              </strong>
+              </strong>{" "}
+              | {session.user.email}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           {isGod && !activeUnternehmenId && (
-            <button style={tabStyle(true, "#ef4444")}>System Zentrale</button>
+            <button style={tabStyle(true, "#ef4444")}>Alle Workspaces</button>
           )}
           {isGod && activeUnternehmenId && (
             <button
@@ -792,7 +943,7 @@ export default function App() {
                 fontSize: "13px",
               }}
             >
-              Zur Zentrale
+              Zurück zur Zentrale
             </button>
           )}
           {activeUnternehmenId && (
@@ -831,6 +982,19 @@ export default function App() {
               )}
             </>
           )}
+          {!isGod && userProfiles.length > 1 && activeUnternehmenId && (
+            <button
+              onClick={() => setActiveUnternehmenId(null)}
+              style={{
+                ...btnStyle,
+                background: "transparent",
+                color: "#0ea5e9",
+                borderColor: "#0ea5e9",
+              }}
+            >
+              Wechseln
+            </button>
+          )}
           <button
             onClick={handleLogout}
             style={{
@@ -840,6 +1004,7 @@ export default function App() {
               border: "none",
               cursor: "pointer",
               fontWeight: "bold",
+              fontSize: "13px",
             }}
           >
             Abmelden
@@ -847,57 +1012,68 @@ export default function App() {
         </div>
       </header>
 
-      {activeUnternehmenId && (
-        <div
-          className="print-header-box"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "25px",
-            marginBottom: "35px",
-            background: "#111827",
-            padding: "15px 25px",
-            borderRadius: "12px",
-            border: "1px solid #1e293b",
-          }}
-        >
-          <button
-            className="no-print"
-            onClick={() =>
-              setWochenStart(
-                new Date(wochenStart.setDate(wochenStart.getDate() - 7))
-              )
-            }
-            style={btnStyle}
+      {["dienstplan", "mein_unternehmen"].includes(aktiverTab) &&
+        activeUnternehmenId && (
+          <div
+            className="print-header-box"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "25px",
+              marginBottom: "35px",
+              background: "#111827",
+              padding: "15px 25px",
+              borderRadius: "12px",
+              border: "1px solid #1e293b",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            }}
           >
-            Vorherige
-          </button>
-          <h2
-            className="print-text-dark"
-            style={{ margin: 0, fontSize: "16px", color: "#94a3b8" }}
-          >
-            Woche:{" "}
-            <strong className="print-text-dark" style={{ color: "#f8fafc" }}>
-              {wochenStart.toLocaleDateString()} -{" "}
-              {wochenEnde.toLocaleDateString()}
-            </strong>
-          </h2>
-          <button
-            className="no-print"
-            onClick={() =>
-              setWochenStart(
-                new Date(wochenStart.setDate(wochenStart.getDate() + 7))
-              )
-            }
-            style={btnStyle}
-          >
-            Nächste
-          </button>
-        </div>
-      )}
+            <button
+              className="no-print"
+              onClick={() =>
+                setWochenStart(
+                  new Date(wochenStart.setDate(wochenStart.getDate() - 7))
+                )
+              }
+              style={btnStyle}
+            >
+              Vorherige
+            </button>
+            <h2
+              className="print-text-dark"
+              style={{
+                margin: 0,
+                fontSize: "16px",
+                fontWeight: "normal",
+                color: "#94a3b8",
+                letterSpacing: "1px",
+              }}
+            >
+              Woche:{" "}
+              <strong
+                className="print-text-dark"
+                style={{ color: "#f8fafc", fontSize: "16px" }}
+              >
+                {wochenStart.toLocaleDateString()} -{" "}
+                {wochenEnde.toLocaleDateString()}
+              </strong>
+            </h2>
+            <button
+              className="no-print"
+              onClick={() =>
+                setWochenStart(
+                  new Date(wochenStart.setDate(wochenStart.getDate() + 7))
+                )
+              }
+              style={btnStyle}
+            >
+              Nächste
+            </button>
+          </div>
+        )}
 
-      {/* SYSTEM ZENTRALE (INFOS VOLLSTÄNDIG) */}
+      {/* --- REITER: SYSTEM ADMIN (JETZT WIEDER 100% VOLLSTÄNDIG) --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div className="no-print">
           <div
@@ -908,16 +1084,17 @@ export default function App() {
               border: "1px solid #1e293b",
               borderTop: "2px solid #ef4444",
               marginBottom: "40px",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
             }}
           >
-            <h3 style={{ marginTop: 0, textAlign: "center", color: "#f8fafc" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
               Neuen Mandanten anlegen
             </h3>
             <form
               onSubmit={godCreateAndAssign}
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 gap: "20px",
               }}
             >
@@ -975,6 +1152,7 @@ export default function App() {
               </div>
               <button
                 type="submit"
+                disabled={isLoading}
                 style={{
                   ...saveBtnStyle,
                   background: "linear-gradient(135deg, #ef4444, #dc2626)",
@@ -982,7 +1160,7 @@ export default function App() {
                   marginTop: "24px",
                 }}
               >
-                Gründen
+                Mandant gründen
               </button>
             </form>
           </div>
@@ -991,6 +1169,7 @@ export default function App() {
               color: "#f8fafc",
               borderBottom: "1px solid #1e293b",
               paddingBottom: "15px",
+              fontSize: "20px",
             }}
           >
             Kunden Workspaces
@@ -1010,9 +1189,17 @@ export default function App() {
                   border: "1px solid #1e293b",
                   padding: "25px",
                   borderRadius: "16px",
+                  transition: "transform 0.2s",
+                  cursor: "default",
                 }}
               >
-                <h3 style={{ margin: "0 0 15px 0", color: "#0ea5e9" }}>
+                <h3
+                  style={{
+                    margin: "0 0 15px 0",
+                    fontSize: "18px",
+                    color: "#0ea5e9",
+                  }}
+                >
                   {u.name}
                 </h3>
                 <div
@@ -1020,27 +1207,87 @@ export default function App() {
                     fontSize: "13px",
                     color: "#94a3b8",
                     lineHeight: "1.8",
-                    marginBottom: "20px",
+                    marginBottom: "25px",
                     background: "#0b1120",
-                    padding: "10px",
+                    padding: "15px",
                     borderRadius: "8px",
+                    border: "1px solid #1e293b",
                   }}
                 >
-                  Sitz: <span style={{ color: "#fff" }}>{u.sitz || "-"}</span>
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    Sitz:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>{u.sitz || "-"}</span>
                   <br />
-                  GF:{" "}
-                  <span style={{ color: "#fff" }}>
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    Inhaber:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>{u.inhaber || "-"}</span>
+                  <br />
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    GF:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>
                     {u.geschaeftsfuehrer || "-"}
                   </span>
-                  <br />
-                  Studios:{" "}
-                  <span style={{ color: "#fff" }}>
-                    {u.studios?.length || 0}
-                  </span>{" "}
-                  | Team:{" "}
-                  <span style={{ color: "#fff" }}>
-                    {u.mitarbeiter?.length || 0}
-                  </span>
+                </div>
+                <div
+                  style={{ display: "flex", gap: "15px", marginBottom: "20px" }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(14, 165, 233, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#0ea5e9",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(14, 165, 233, 0.2)",
+                    }}
+                  >
+                    Studios
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.studios?.length || 0}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      background: "rgba(99, 102, 241, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#818cf8",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(99, 102, 241, 0.2)",
+                    }}
+                  >
+                    Mitarbeiter
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.mitarbeiter?.length || 0}
+                    </strong>
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button
@@ -1048,7 +1295,15 @@ export default function App() {
                       setActiveUnternehmenId(u.id);
                       setAktiverTab("mein_unternehmen");
                     }}
-                    style={{ ...saveBtnStyle, flex: 1, boxShadow: "none" }}
+                    style={{
+                      ...saveBtnStyle,
+                      flex: 1,
+                      fontSize: "13px",
+                      background: "#1f2937",
+                      color: "#f8fafc",
+                      border: "1px solid #374151",
+                      boxShadow: "none",
+                    }}
                   >
                     Öffnen
                   </button>
@@ -1065,7 +1320,533 @@ export default function App() {
         </div>
       )}
 
-      {/* DIENSTPLAN */}
+      {/* --- REITER: MEIN UNTERNEHMEN (VOLLSTÄNDIG) --- */}
+      {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
+        <div className="no-print">
+          <div
+            style={{
+              background: "#111827",
+              padding: "30px",
+              borderRadius: "16px",
+              border: "1px solid #1e293b",
+              marginBottom: "40px",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#f8fafc",
+                borderBottom: "1px solid #1e293b",
+                paddingBottom: "15px",
+                fontSize: "18px",
+              }}
+            >
+              Standorte verwalten
+            </h3>
+            <form
+              onSubmit={studioSpeichern}
+              style={{ display: "flex", gap: "15px", marginBottom: "25px" }}
+            >
+              <input
+                placeholder="Neues Studio..."
+                value={neuesStudioName}
+                onChange={(e) => setNeuesStudioName(e.target.value)}
+                required
+                style={{ ...inputStyle, maxWidth: "350px" }}
+              />
+              <button type="submit" style={saveBtnStyle}>
+                Hinzufügen
+              </button>
+            </form>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "15px" }}>
+              {studios.map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    background: "#1f2937",
+                    padding: "12px 20px",
+                    borderRadius: "10px",
+                    border: "1px solid #374151",
+                    display: "flex",
+                    gap: "15px",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong style={{ fontSize: "15px", fontWeight: "600" }}>
+                    {s.name}
+                  </strong>{" "}
+                  <button
+                    onClick={() => studioLoeschen(s.id)}
+                    style={{
+                      color: "#ef4444",
+                      border: "none",
+                      background: "none",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Entfernen
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "#111827",
+              padding: "30px",
+              borderRadius: "16px",
+              border: "1px solid #1e293b",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#f8fafc",
+                borderBottom: "1px solid #1e293b",
+                paddingBottom: "15px",
+                fontSize: "18px",
+              }}
+            >
+              Personalverwaltung
+            </h3>
+            <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
+              <div
+                style={{
+                  flex: "0 0 320px",
+                  background: "#0b1120",
+                  padding: "25px",
+                  borderRadius: "12px",
+                  border: "1px solid #1e293b",
+                }}
+              >
+                <h4
+                  style={{ marginTop: 0, color: "#0ea5e9", fontSize: "16px" }}
+                >
+                  Mitarbeiter anlegen
+                </h4>
+                <form
+                  onSubmit={mitarbeiterSpeichern}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "15px",
+                  }}
+                >
+                  <div>
+                    <label style={labelStyle}>Name</label>
+                    <input
+                      value={neuerName}
+                      onChange={(e) => setNeuerName(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>E-Mail (Login)</label>
+                    <input
+                      type="email"
+                      value={neueEmail}
+                      onChange={(e) => setNeueEmail(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "15px" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Soll Std/Wo</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={neueWochenstunden}
+                        onChange={(e) => setNeueWochenstunden(e.target.value)}
+                        required
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Urlaub/Jahr</label>
+                      <input
+                        type="number"
+                        value={neuerUrlaubsAnspruch}
+                        onChange={(e) =>
+                          setNeuerUrlaubsAnspruch(e.target.value)
+                        }
+                        required
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>System-Rolle</label>
+                    <select
+                      value={neueRolle}
+                      onChange={(e) => setNeueRolle(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option>Trainer</option>
+                      <option>Studioleiter</option>
+                      <option>Geschäftsführer</option>
+                      <option>Inhaber</option>
+                    </select>
+                  </div>
+                  <label
+                    style={{
+                      fontSize: "13px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      marginTop: "5px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={neueFreigabe}
+                      onChange={(e) => setNeueFreigabe(e.target.checked)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#0ea5e9",
+                      }}
+                    />{" "}
+                    Planungs-Rechte erteilen
+                  </label>
+                  <button
+                    type="submit"
+                    style={{ ...saveBtnStyle, marginTop: "10px" }}
+                  >
+                    Hinzufügen
+                  </button>
+                </form>
+              </div>
+              <div style={{ flex: "1 1 600px", overflowX: "auto" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    textAlign: "left",
+                    background: "#0b1120",
+                    borderRadius: "12px",
+                    border: "1px solid #1e293b",
+                  }}
+                >
+                  <thead
+                    style={{
+                      background: "#1f2937",
+                      borderBottom: "1px solid #374151",
+                    }}
+                  >
+                    <tr>
+                      <th style={thStyle}>Personal</th>
+                      <th style={thStyle}>Std/Wo</th>
+                      <th style={thStyle}>Urlaub</th>
+                      <th style={thStyle}>Krank</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>
+                        Aktionen
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mitarbeiter.map((m) => {
+                      const ist = berechneGesamtStunden(m.id);
+                      const soll = parseFloat(m.wochenstunden) || 0;
+                      const diff = (ist - soll).toFixed(1);
+                      const magicColor = getMitarbeiterColor(m.name);
+                      return editingMitarbeiterId === m.id ? (
+                        <tr
+                          key={m.id}
+                          style={{
+                            background: "#1e293b",
+                            borderBottom: "1px solid #374151",
+                          }}
+                        >
+                          <td style={tdStyle}>
+                            <input
+                              value={editMitarbeiterName}
+                              onChange={(e) =>
+                                setEditMitarbeiterName(e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                padding: "8px",
+                                marginBottom: "8px",
+                              }}
+                            />
+                            <br />
+                            <input
+                              type="email"
+                              value={editMitarbeiterEmail}
+                              onChange={(e) =>
+                                setEditMitarbeiterEmail(e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                padding: "8px",
+                                marginBottom: "8px",
+                              }}
+                            />
+                            <br />
+                            <select
+                              value={editMitarbeiterRolle}
+                              onChange={(e) =>
+                                setEditMitarbeiterRolle(e.target.value)
+                              }
+                              style={{ ...inputStyle, padding: "8px" }}
+                            >
+                              <option>Trainer</option>
+                              <option>Studioleiter</option>
+                              <option>Geschäftsführer</option>
+                              <option>Inhaber</option>
+                            </select>
+                            <br />
+                            <label
+                              style={{ fontSize: "11px", color: "#94a3b8" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={editMitarbeiterFreigabe}
+                                onChange={(e) =>
+                                  setEditMitarbeiterFreigabe(e.target.checked)
+                                }
+                              />{" "}
+                              Planungs-Rechte
+                            </label>
+                          </td>
+                          <td style={tdStyle}>
+                            <input
+                              type="number"
+                              step="0.5"
+                              value={editMitarbeiterStunden}
+                              onChange={(e) =>
+                                setEditMitarbeiterStunden(e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                width: "70px",
+                                padding: "8px",
+                              }}
+                            />
+                          </td>
+                          <td style={tdStyle}>
+                            <input
+                              type="number"
+                              value={editMitarbeiterUrlaub}
+                              onChange={(e) =>
+                                setEditMitarbeiterUrlaub(e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                width: "70px",
+                                padding: "8px",
+                              }}
+                            />
+                          </td>
+                          <td style={tdStyle}>-</td>
+                          <td style={{ ...tdStyle, textAlign: "right" }}>
+                            <button
+                              onClick={() => mitarbeiterAktualisieren(m.id)}
+                              style={{
+                                background: "#10b981",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 16px",
+                                borderRadius: "6px",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Speichern
+                            </button>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr
+                          key={m.id}
+                          style={{
+                            borderBottom: "1px solid #1e293b",
+                            transition: "0.2s",
+                          }}
+                          onMouseOver={(e) =>
+                            (e.currentTarget.style.background = "#111827")
+                          }
+                          onMouseOut={(e) =>
+                            (e.currentTarget.style.background = "transparent")
+                          }
+                        >
+                          <td style={tdStyle}>
+                            <strong
+                              style={{
+                                color: "#f8fafc",
+                                fontSize: "14px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  borderRadius: "50%",
+                                  backgroundColor: magicColor,
+                                }}
+                              ></div>
+                              {m.name}
+                            </strong>
+                            <br />
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                color: "#94a3b8",
+                                marginLeft: "22px",
+                              }}
+                            >
+                              {m.email}
+                            </span>
+                            <br />
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                marginTop: "8px",
+                                marginLeft: "22px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  border: "1px solid #3b82f6",
+                                  color: "#60a5fa",
+                                  background: "rgba(59,130,246,0.1)",
+                                  padding: "3px 8px",
+                                  borderRadius: "6px",
+                                  fontSize: "10px",
+                                  textTransform: "uppercase",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {m.rolle}
+                              </span>{" "}
+                              {m.darf_schichten_aendern && (
+                                <span
+                                  style={{
+                                    fontSize: "10px",
+                                    color: "#10b981",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  Freigegeben
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={tdStyle}>
+                            <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                              Soll: {soll.toFixed(1)} | Ist:{" "}
+                              <strong style={{ color: "#f8fafc" }}>
+                                {ist.toFixed(1)}
+                              </strong>
+                            </div>
+                            <div
+                              style={{
+                                color:
+                                  diff > 0
+                                    ? "#10b981"
+                                    : diff < 0
+                                    ? "#ef4444"
+                                    : "#94a3b8",
+                                fontWeight: "bold",
+                                fontSize: "13px",
+                                marginTop: "4px",
+                              }}
+                            >
+                              {diff > 0 ? "+" : ""}
+                              {diff} Std.
+                            </div>
+                          </td>
+                          <td style={tdStyle}>
+                            <div
+                              style={{
+                                fontSize: "15px",
+                                fontWeight: "bold",
+                                color: "#f59e0b",
+                              }}
+                            >
+                              {berechneTage(m.id, "Urlaub")}{" "}
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#94a3b8",
+                                  fontWeight: "normal",
+                                }}
+                              >
+                                / {m.urlaubs_anspruch}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={tdStyle}>
+                            <div
+                              style={{
+                                fontSize: "15px",
+                                fontWeight: "bold",
+                                color: "#ef4444",
+                              }}
+                            >
+                              {berechneTage(m.id, "Krank")}{" "}
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#94a3b8",
+                                  fontWeight: "normal",
+                                }}
+                              >
+                                Tage
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: "right" }}>
+                            <button
+                              onClick={() => {
+                                setEditingMitarbeiterId(m.id);
+                                setEditMitarbeiterName(m.name);
+                                setEditMitarbeiterEmail(m.email);
+                                setEditMitarbeiterStunden(m.wochenstunden);
+                                setEditMitarbeiterUrlaub(m.urlaubs_anspruch);
+                                setEditMitarbeiterRolle(m.rolle);
+                                setEditMitarbeiterFreigabe(
+                                  m.darf_schichten_aendern
+                                );
+                              }}
+                              style={textBtnStyle}
+                            >
+                              Bearbeiten
+                            </button>{" "}
+                            <button
+                              onClick={() => mitarbeiterLoeschen(m.id)}
+                              style={{
+                                ...textBtnStyle,
+                                color: "#ef4444",
+                                marginLeft: "10px",
+                              }}
+                            >
+                              Löschen
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
@@ -1083,7 +1864,14 @@ export default function App() {
               onClick={() => setAktivesStudioView("all")}
               style={{
                 ...btnStyle,
-                background: aktivesStudioView === "all" ? "#0ea5e9" : "#111827",
+                padding: "10px 20px",
+                background:
+                  aktivesStudioView === "all"
+                    ? "linear-gradient(135deg, #0ea5e9, #3b82f6)"
+                    : "#111827",
+                color: aktivesStudioView === "all" ? "#fff" : "#94a3b8",
+                border:
+                  aktivesStudioView === "all" ? "none" : "1px solid #1e293b",
               }}
             >
               Gesamt-Ansicht
@@ -1094,10 +1882,17 @@ export default function App() {
                 onClick={() => setAktivesStudioView(s.id.toString())}
                 style={{
                   ...btnStyle,
+                  padding: "10px 20px",
                   background:
                     aktivesStudioView === s.id.toString()
-                      ? "#0ea5e9"
+                      ? "linear-gradient(135deg, #0ea5e9, #3b82f6)"
                       : "#111827",
+                  color:
+                    aktivesStudioView === s.id.toString() ? "#fff" : "#94a3b8",
+                  border:
+                    aktivesStudioView === s.id.toString()
+                      ? "none"
+                      : "1px solid #1e293b",
                 }}
               >
                 {s.name}
@@ -1110,6 +1905,7 @@ export default function App() {
                 marginLeft: "auto",
                 background: "linear-gradient(135deg, #10b981, #059669)",
                 border: "none",
+                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
               }}
             >
               🖨️ PDF / Drucken
@@ -1150,7 +1946,407 @@ export default function App() {
         </div>
       )}
 
-      {/* SEMINARE (MIT MULTI-SELECT) */}
+      {/* --- REITER: SCHULE --- */}
+      {aktiverTab === "schule" && activeUnternehmenId && (
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          {canEdit && (
+            <div
+              style={{
+                background: "#111827",
+                padding: "30px",
+                borderRadius: "16px",
+                flex: "0 0 340px",
+                border: "1px solid #1e293b",
+                borderTop: "3px solid #10b981",
+              }}
+            >
+              <h3 style={{ marginTop: 0, color: "#10b981", fontSize: "18px" }}>
+                Neuer Blockunterricht
+              </h3>
+              <form
+                onSubmit={schuleSpeichern}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                  marginTop: "20px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Mitarbeiter</label>
+                  <select
+                    value={schuleMitarbeiter}
+                    onChange={(e) => setSchuleMitarbeiter(e.target.value)}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">-- Auswählen --</option>
+                    {mitarbeiter.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Start Datum</label>
+                    <input
+                      type="date"
+                      value={schuleStartDatum}
+                      onChange={(e) => setSchuleStartDatum(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>End Datum</label>
+                    <input
+                      type="date"
+                      value={schuleEndDatum}
+                      onChange={(e) => setSchuleEndDatum(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Startzeit</label>
+                    <input
+                      type="time"
+                      value={schuleStartZeit}
+                      onChange={(e) => setSchuleStartZeit(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Endzeit</label>
+                    <input
+                      type="time"
+                      value={schuleEndZeit}
+                      onChange={(e) => setSchuleEndZeit(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  style={{
+                    ...saveBtnStyle,
+                    background: "linear-gradient(135deg, #10b981, #059669)",
+                  }}
+                >
+                  Block eintragen
+                </button>
+              </form>
+            </div>
+          )}
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Geplante Ausbildungen
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginTop: "20px",
+              }}
+            >
+              {schichten
+                .filter(
+                  (s) =>
+                    s.typ === "Schule/Uni" &&
+                    new Date(s.endzeit) >= new Date().setHours(0, 0, 0, 0)
+                )
+                .sort((a, b) => new Date(a.startzeit) - new Date(b.startzeit))
+                .map((s) => {
+                  const isMultiDay =
+                    new Date(s.startzeit).toDateString() !==
+                    new Date(s.endzeit).toDateString();
+                  const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        background: "#111827",
+                        padding: "18px 20px",
+                        borderLeft: "4px solid #10b981",
+                        borderRadius: "10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        border: "1px solid #1e293b",
+                      }}
+                    >
+                      <div>
+                        <strong
+                          style={{
+                            color: "#10b981",
+                            fontSize: "15px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
+                          {s.mitarbeiter?.name}
+                        </strong>
+                        <div style={{ marginTop: "4px" }}>
+                          {isMultiDay ? (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Vom{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>{" "}
+                              bis{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.endzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Am{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {canEdit && (
+                        <button
+                          onClick={() => schichtLoeschen(s.id)}
+                          style={{ ...textBtnStyle, color: "#ef4444" }}
+                        >
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REITER: URLAUB --- */}
+      {aktiverTab === "urlaub" && activeUnternehmenId && (
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              background: "#111827",
+              padding: "30px",
+              borderRadius: "16px",
+              flex: "0 0 340px",
+              border: "1px solid #1e293b",
+              borderTop: "3px solid #f59e0b",
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: "#f59e0b", fontSize: "18px" }}>
+              Urlaubsantrag
+            </h3>
+            <form
+              onSubmit={urlaubBeantragen}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+                marginTop: "20px",
+              }}
+            >
+              <div>
+                <label style={labelStyle}>Mitarbeiter</label>
+                <select
+                  value={urlaubMitarbeiter}
+                  onChange={(e) => setUrlaubMitarbeiter(e.target.value)}
+                  required
+                  style={inputStyle}
+                >
+                  <option value="">-- Wer beantragt? --</option>
+                  {mitarbeiter.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Vom (inkl.)</label>
+                <input
+                  type="date"
+                  value={urlaubStart}
+                  onChange={(e) => setUrlaubStart(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Bis (inkl.)</label>
+                <input
+                  type="date"
+                  value={urlaubEnde}
+                  onChange={(e) => setUrlaubEnde(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  ...saveBtnStyle,
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                }}
+              >
+                Beantragen
+              </button>
+            </form>
+          </div>
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Ausstehende Anträge
+            </h3>
+            <div style={{ marginTop: "20px" }}>
+              {schichten
+                .filter((s) => s.typ === "Urlaub" && s.status === "Beantragt")
+                .map((u) => {
+                  const mColor = getMitarbeiterColor(u.mitarbeiter?.name);
+                  return (
+                    <div
+                      key={u.id}
+                      style={{
+                        background: "#111827",
+                        padding: "25px",
+                        marginBottom: "15px",
+                        borderLeft: "4px solid #f59e0b",
+                        borderRadius: "12px",
+                        border: "1px solid #1e293b",
+                      }}
+                    >
+                      <div style={{ fontSize: "14px", color: "#e2e8f0" }}>
+                        <strong
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "16px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
+                          {u.mitarbeiter?.name}
+                        </strong>{" "}
+                        <br />
+                        beantragt Urlaub vom{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.startzeit).toLocaleDateString()}
+                        </strong>{" "}
+                        bis{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.endzeit).toLocaleDateString()}
+                        </strong>
+                      </div>
+                      {isAdmin ? (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            gap: "12px",
+                          }}
+                        >
+                          <button
+                            onClick={() => urlaubGenehmigen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #10b981, #059669)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Genehmigen
+                          </button>
+                          <button
+                            onClick={() => schichtLoeschen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #ef4444, #dc2626)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Ablehnen
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: "15px",
+                            fontSize: "12px",
+                            color: "#94a3b8",
+                            background: "#0b1120",
+                            padding: "10px",
+                            borderRadius: "6px",
+                            display: "inline-block",
+                            border: "1px solid #1e293b",
+                          }}
+                        >
+                          Wartet auf Freigabe.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REITER: SEMINARE (MIT NEUEM MULTI-SELECT) --- */}
       {aktiverTab === "seminare" && activeUnternehmenId && (
         <div
           className="no-print"
@@ -1172,18 +2368,22 @@ export default function App() {
                 borderTop: "3px solid #8b5cf6",
               }}
             >
-              <h3 style={{ marginTop: 0, color: "#8b5cf6" }}>Neues Seminar</h3>
+              <h3 style={{ marginTop: 0, color: "#8b5cf6", fontSize: "18px" }}>
+                Neues Seminar
+              </h3>
               <form
                 onSubmit={seminarSpeichern}
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   gap: "18px",
+                  marginTop: "20px",
                 }}
               >
                 <div>
-                  <label style={labelStyle}>Thema</label>
+                  <label style={labelStyle}>Titel / Thema</label>
                   <input
+                    type="text"
                     value={seminarTitel}
                     onChange={(e) => setSeminarTitel(e.target.value)}
                     required
@@ -1217,14 +2417,23 @@ export default function App() {
                     background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
                   }}
                 >
-                  Seminar planen
+                  Planen
                 </button>
               </form>
             </div>
           )}
           <div style={{ flex: "1 1 500px" }}>
-            <h3 style={{ marginTop: 0 }}>Aktuelle Seminare</h3>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Geplante Fortbildungen
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "20px",
+                marginTop: "20px",
+              }}
+            >
               {seminare.map((sem) => {
                 const assigned = schichten.filter(
                   (s) =>
@@ -1237,19 +2446,34 @@ export default function App() {
                     key={sem.id}
                     style={{
                       background: "#111827",
-                      padding: "20px",
+                      padding: "25px",
                       borderRadius: "12px",
                       borderLeft: "4px solid #8b5cf6",
-                      flex: "1 1 400px",
+                      flex: "1 1 320px",
                       border: "1px solid #1e293b",
                     }}
                   >
-                    <h4 style={{ margin: 0 }}>{sem.titel}</h4>
-                    <p style={{ fontSize: "12px", color: "#94a3b8" }}>
+                    <h4
+                      style={{
+                        margin: "0 0 8px 0",
+                        color: "#f8fafc",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {sem.titel}
+                    </h4>
+                    <p
+                      style={{
+                        margin: "0 0 20px 0",
+                        fontSize: "13px",
+                        color: "#94a3b8",
+                      }}
+                    >
                       {new Date(sem.startzeit).toLocaleString("de-DE")} -{" "}
                       {new Date(sem.endzeit).toLocaleTimeString("de-DE")} Uhr
                     </p>
 
+                    {/* DAS NEUE MULTI-SELECT FÜR SEMINARE */}
                     {isAdmin && (
                       <div
                         style={{
@@ -1262,10 +2486,11 @@ export default function App() {
                           style={{
                             fontSize: "12px",
                             fontWeight: "bold",
-                            marginBottom: "8px",
+                            marginBottom: "10px",
+                            color: "#f8fafc",
                           }}
                         >
-                          Teilnehmer wählen:
+                          Teilnehmer auswählen:
                         </p>
                         <div
                           style={{
@@ -1274,6 +2499,7 @@ export default function App() {
                             background: "#0b1120",
                             padding: "10px",
                             borderRadius: "8px",
+                            border: "1px solid #1e293b",
                           }}
                         >
                           {mitarbeiter.map((m) => (
@@ -1283,9 +2509,10 @@ export default function App() {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "10px",
-                                padding: "4px 0",
+                                padding: "6px 0",
                                 cursor: "pointer",
                                 fontSize: "13px",
+                                color: "#94a3b8",
                               }}
                             >
                               <input
@@ -1303,6 +2530,7 @@ export default function App() {
                                       : current.filter((id) => id !== m.id),
                                   });
                                 }}
+                                style={{ accentColor: "#8b5cf6" }}
                               />{" "}
                               {m.name}
                             </label>
@@ -1314,24 +2542,75 @@ export default function App() {
                             ...saveBtnStyle,
                             width: "100%",
                             marginTop: "10px",
-                            background: "#8b5cf6",
+                            background:
+                              "linear-gradient(135deg, #8b5cf6, #7c3aed)",
                           }}
                         >
                           Alle Gewählten zuweisen
                         </button>
                       </div>
                     )}
-                    <div
-                      style={{
-                        marginTop: "15px",
-                        fontSize: "12px",
-                        color: "#94a3b8",
-                      }}
-                    >
-                      <strong>Eingeteilt:</strong>{" "}
-                      {assigned.map((a) => a.mitarbeiter?.name).join(", ") ||
-                        "Niemand"}
-                    </div>
+                    {assigned.length > 0 ? (
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          color: "#e2e8f0",
+                          background: "#0b1120",
+                          padding: "12px",
+                          borderRadius: "8px",
+                          border: "1px solid #1e293b",
+                          marginTop: "15px",
+                        }}
+                      >
+                        <strong>Teilnehmer:</strong>
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                          }}
+                        >
+                          {assigned.map((a) => {
+                            const mColor = getMitarbeiterColor(
+                              a.mitarbeiter?.name
+                            );
+                            return (
+                              <span
+                                key={a.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: mColor,
+                                  }}
+                                ></div>
+                                {a.mitarbeiter?.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#64748b",
+                          fontStyle: "italic",
+                          marginTop: "15px",
+                        }}
+                      >
+                        Noch keine Teilnehmer.
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1339,13 +2618,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
-        <div className="no-print">
-          {/* Verwaltung hier... (wie oben beschrieben) */}
-        </div>
-      )}
-
       {toast.visible && (
         <div
           className="no-print"
@@ -1371,6 +2643,7 @@ export default function App() {
   );
 }
 
+// --- KALENDER KOMPONENTE (MIT DRUCK-TABELLE) ---
 function StudioKalenderKachel({
   studio,
   isAusserHaus,
@@ -1393,6 +2666,8 @@ function StudioKalenderKachel({
   const [schichtTyp, setSchichtTyp] = useState(
     isAusserHaus ? "Krank" : "Arbeit"
   );
+  const [attestFile, setAttestFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   function getThemeColors(typ, mColor) {
     if (typ === "Urlaub")
@@ -1423,6 +2698,13 @@ function StudioKalenderKachel({
         text: "#fca5a5",
         borderSoft: "rgba(239, 68, 68, 0.2)",
       };
+    if (typ === "Feiertag")
+      return {
+        border: "#64748b",
+        bg: "rgba(100, 116, 139, 0.08)",
+        text: "#cbd5e1",
+        borderSoft: "rgba(100, 116, 139, 0.2)",
+      };
     return {
       border: mColor,
       bg: `${mColor}1A`,
@@ -1432,18 +2714,39 @@ function StudioKalenderKachel({
   }
 
   async function schichtLoeschen(id) {
-    if (!window.confirm("Löschen?")) return;
+    if (!window.confirm("Eintrag wirklich löschen?")) return;
     await supabase.from("schichten").delete().eq("id", id);
     ladeDaten();
-    showToast("Entfernt.", "success");
+    showToast("Eintrag gelöscht.", "success");
   }
 
   async function neueSchichtSpeichern(event) {
     event.preventDefault();
     if (!schichtMitarbeiter && schichtTyp !== "Feiertag")
-      return showToast("Wähle Mitarbeiter!", "error");
+      return showToast("Bitte wähle einen Mitarbeiter aus!", "error");
+    setIsUploading(true);
+    let hochgeladeneUrl = null;
+    if (attestFile && schichtTyp === "Krank") {
+      const fileExt = attestFile.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("atteste")
+        .upload(fileName, attestFile);
+      if (!uploadError) {
+        const { data } = supabase.storage
+          .from("atteste")
+          .getPublicUrl(fileName);
+        hochgeladeneUrl = data.publicUrl;
+      }
+    }
     const startStr = baueDatumZusammen(aktivesDatum, startTime);
     let endStr = baueDatumZusammen(aktivesDatum, endTime);
+    const start = new Date(startStr);
+    const ende = new Date(endStr);
+    if (ende <= start) {
+      ende.setDate(ende.getDate() + 1);
+      endStr = baueDatumZusammen(ende, endTime);
+    }
     await supabase
       .from("schichten")
       .insert([
@@ -1454,12 +2757,15 @@ function StudioKalenderKachel({
           endzeit: endStr,
           status: "Genehmigt",
           typ: schichtTyp,
+          attest_url: hochgeladeneUrl,
           unternehmen_id: currentUnternehmenId,
         },
       ]);
+    setIsUploading(false);
     setAktivesDatum(null);
+    setAttestFile(null);
     ladeDaten();
-    showToast("Gespeichert.", "success");
+    showToast("Schicht gespeichert.", "success");
   }
 
   return (
@@ -1496,7 +2802,7 @@ function StudioKalenderKachel({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(11,17,32,0.85)",
+            background: "rgba(11, 17, 32, 0.85)",
             zIndex: 1000,
             display: "flex",
             justifyContent: "center",
@@ -1507,16 +2813,26 @@ function StudioKalenderKachel({
           <div
             style={{
               background: "#111827",
-              padding: "30px",
+              padding: "35px",
               borderRadius: "16px",
-              width: "400px",
+              width: "100%",
+              maxWidth: "400px",
               border: "1px solid #1e293b",
             }}
           >
-            <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Neuer Eintrag</h3>
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#f8fafc",
+                fontSize: "16px",
+                marginBottom: "25px",
+              }}
+            >
+              Neuer Eintrag
+            </h3>
             <form
               onSubmit={neueSchichtSpeichern}
-              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+              style={{ display: "flex", flexDirection: "column", gap: "18px" }}
             >
               {isAusserHaus && (
                 <div>
@@ -1533,22 +2849,24 @@ function StudioKalenderKachel({
                   </select>
                 </div>
               )}
-              <div>
-                <label style={labelStyle}>Mitarbeiter</label>
-                <select
-                  value={schichtMitarbeiter}
-                  onChange={(e) => setSchichtMitarbeiter(e.target.value)}
-                  required
-                  style={inputStyle}
-                >
-                  <option value="">-- Wählen --</option>
-                  {alleMitarbeiter.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {schichtTyp !== "Feiertag" && (
+                <div>
+                  <label style={labelStyle}>Mitarbeiter</label>
+                  <select
+                    value={schichtMitarbeiter}
+                    onChange={(e) => setSchichtMitarbeiter(e.target.value)}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">-- Bitte wählen --</option>
+                    {alleMitarbeiter.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "15px" }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>Von</label>
@@ -1571,7 +2889,31 @@ function StudioKalenderKachel({
                   />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "10px" }}>
+              {schichtTyp === "Krank" && (
+                <div
+                  style={{
+                    background: "rgba(239, 68, 68, 0.05)",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    border: "1px dashed #ef4444",
+                  }}
+                >
+                  <label style={{ ...labelStyle, color: "#ef4444" }}>
+                    AU-Bescheinigung
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => setAttestFile(e.target.files[0])}
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: "13px",
+                      marginTop: "5px",
+                    }}
+                  />
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "12px", marginTop: "15px" }}>
                 <button
                   type="button"
                   onClick={() => setAktivesDatum(null)}
@@ -1579,16 +2921,28 @@ function StudioKalenderKachel({
                     flex: 1,
                     padding: "12px",
                     background: "transparent",
+                    color: "#94a3b8",
                     border: "1px solid #374151",
                     borderRadius: "8px",
-                    color: "#fff",
+                    cursor: "pointer",
+                    fontWeight: "bold",
                   }}
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  style={{ flex: 1, ...saveBtnStyle, marginTop: 0 }}
+                  disabled={isUploading}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    background: "linear-gradient(135deg, #0ea5e9, #3b82f6)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
                 >
                   Speichern
                 </button>
@@ -1602,10 +2956,11 @@ function StudioKalenderKachel({
         className="print-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(7, minmax(180px, 1fr))",
           gap: "12px",
           marginTop: "20px",
           overflowX: "auto",
+          paddingBottom: "10px",
         }}
       >
         {wochentage.map((tag, index) => {
@@ -1646,13 +3001,15 @@ function StudioKalenderKachel({
             overlappingGroups.push(currentGroup);
           }
 
+          const isToday = tag.toDateString() === new Date().toDateString();
+
           return (
             <div
               key={index}
               className="print-day"
               style={{
                 background: "#0b1120",
-                border: "1px solid #1e293b",
+                border: isToday ? "1px solid #0ea5e9" : "1px solid #1e293b",
                 borderRadius: "12px",
                 minHeight: "240px",
                 display: "flex",
@@ -1662,156 +3019,238 @@ function StudioKalenderKachel({
               <div
                 className="print-day-header"
                 style={{
-                  background: "#1f2937",
-                  color: "#fff",
-                  padding: "10px",
+                  background: isToday ? "rgba(14, 165, 233, 0.1)" : "#1f2937",
+                  color: isToday ? "#0ea5e9" : "#f8fafc",
+                  padding: "12px 10px",
                   textAlign: "center",
+                  borderRadius: "11px 11px 0 0",
                   fontWeight: "bold",
+                  borderBottom: isToday
+                    ? "1px solid rgba(14, 165, 233, 0.2)"
+                    : "1px solid #1e293b",
                 }}
               >
                 {tag.toLocaleDateString("de-DE", { weekday: "short" })}
                 <br />
-                <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "normal",
+                    color: isToday ? "#38bdf8" : "#94a3b8",
+                    display: "inline-block",
+                    marginTop: "2px",
+                  }}
+                >
                   {tag.toLocaleDateString("de-DE", {
                     day: "2-digit",
                     month: "2-digit",
                   })}
                 </span>
               </div>
+
               <div
                 className="print-shift-container"
-                style={{ padding: "10px", flex: 1 }}
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  flex: 1,
+                }}
               >
-                {overlappingGroups.map((group, gIndex) => (
-                  <div
-                    key={gIndex}
-                    className="print-shift-row"
-                    style={{ display: "flex", gap: "6px", width: "100%" }}
-                  >
-                    {group.map((s) => {
-                      const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
-                      const theme = getThemeColors(s.typ, mColor);
-                      const groupStart = Math.min(
-                        ...group.map(
-                          (sh) => new Date(sh.startzeit).getTime() || 0
-                        )
-                      );
-                      const offsetMinutes =
-                        Math.max(
-                          0,
-                          ((new Date(s.startzeit).getTime() || 0) -
-                            groupStart) /
-                            60000
-                        ) || 0;
-                      const durationMinutes =
-                        Math.max(
-                          0,
-                          ((new Date(s.endzeit).getTime() || 0) -
-                            (new Date(s.startzeit).getTime() || 0)) /
-                            60000
-                        ) || 0;
-                      return (
-                        <div
-                          key={s.id}
-                          className="print-shift"
-                          style={{
-                            flex: 1,
-                            marginTop: `${offsetMinutes * 0.8}px`,
-                            minHeight: `${Math.max(
-                              60,
-                              durationMinutes * 0.8
-                            )}px`,
-                            background: theme.bg,
-                            padding: "8px",
-                            borderRadius: "6px",
-                            borderLeft: `4px solid ${theme.border}`,
-                            borderTop: `1px solid ${theme.borderSoft}`,
-                            borderRight: `1px solid ${theme.borderSoft}`,
-                            borderBottom: `1px solid ${theme.borderSoft}`,
-                            position: "relative",
-                            minWidth: 0,
-                          }}
-                        >
+                {overlappingGroups.map((group, gIndex) => {
+                  const groupStart = Math.min(
+                    ...group.map((s) => new Date(s.startzeit).getTime() || 0)
+                  );
+                  return (
+                    <div
+                      key={gIndex}
+                      className="print-shift-row"
+                      style={{ display: "flex", gap: "6px", width: "100%" }}
+                    >
+                      {group.map((s) => {
+                        const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
+                        const theme = getThemeColors(s.typ, mColor);
+                        const offsetMinutes =
+                          Math.max(
+                            0,
+                            ((new Date(s.startzeit).getTime() || 0) -
+                              groupStart) /
+                              60000
+                          ) || 0;
+                        const durationMinutes =
+                          Math.max(
+                            0,
+                            ((new Date(s.endzeit).getTime() || 0) -
+                              (new Date(s.startzeit).getTime() || 0)) /
+                              60000
+                          ) || 0;
+
+                        return (
                           <div
-                            className="print-shift-time"
+                            key={s.id}
+                            className="print-shift"
                             style={{
-                              fontWeight: "bold",
-                              fontSize: "10px",
-                              color: "#f8fafc",
+                              flex: 1,
+                              marginTop: `${offsetMinutes * 0.8}px`,
+                              minHeight: `${Math.max(
+                                60,
+                                durationMinutes * 0.8
+                              )}px`,
+                              background: theme.bg,
+                              padding: "8px 24px 8px 8px",
+                              borderRadius: "6px",
+                              borderLeft: `4px solid ${theme.border}`,
+                              borderTop: `1px solid ${theme.borderSoft}`,
+                              borderRight: `1px solid ${theme.borderSoft}`,
+                              borderBottom: `1px solid ${theme.borderSoft}`,
+                              position: "relative",
+                              minWidth: 0,
                             }}
                           >
-                            {new Date(s.startzeit).toLocaleTimeString("de-DE", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            -{" "}
-                            {new Date(s.endzeit).toLocaleTimeString("de-DE", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                          <div
-                            className="print-shift-name"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              color: theme.text,
-                              fontWeight: "bold",
-                              marginTop: "4px",
-                              fontSize: "11px",
-                            }}
-                          >
+                            {s.typ !== "Arbeit" && (
+                              <div
+                                style={{
+                                  fontSize: "8px",
+                                  background: theme.border,
+                                  color: "#fff",
+                                  display: "inline-block",
+                                  padding: "2px 5px",
+                                  borderRadius: "4px",
+                                  marginBottom: "4px",
+                                  fontWeight: "bold",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                }}
+                              >
+                                {s.typ}
+                              </div>
+                            )}
                             <div
+                              className="print-shift-time"
                               style={{
-                                width: "7px",
-                                height: "7px",
-                                borderRadius: "50%",
-                                backgroundColor: mColor,
-                              }}
-                            ></div>
-                            {s.mitarbeiter?.name || "Alle"}
-                          </div>
-                          {canEdit && (
-                            <button
-                              className="no-print"
-                              onClick={() => schichtLoeschen(s.id)}
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                right: "2px",
-                                background: "none",
-                                border: "none",
-                                color: "#ef4444",
-                                fontSize: "10px",
-                                cursor: "pointer",
+                                fontWeight: "bold",
+                                color: "#f8fafc",
+                                fontSize: "11px",
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              X
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                              {new Date(s.startzeit).toLocaleTimeString(
+                                "de-DE",
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}{" "}
+                              -{" "}
+                              {new Date(s.endzeit).toLocaleTimeString("de-DE", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                            <div
+                              className="print-shift-name"
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "5px",
+                                color: theme.text,
+                                fontWeight: "bold",
+                                marginTop: "4px",
+                                fontSize: "11px",
+                                lineHeight: "1.2",
+                                wordWrap: "break-word",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "7px",
+                                  height: "7px",
+                                  borderRadius: "50%",
+                                  backgroundColor: mColor,
+                                  flexShrink: 0,
+                                  marginTop: "4px",
+                                }}
+                              ></div>
+                              <span style={{ display: "block" }}>
+                                {s.mitarbeiter?.name
+                                  ? s.mitarbeiter.name.split(" ")[0]
+                                  : "Alle"}
+                              </span>
+                            </div>
+                            {canEdit && (
+                              <button
+                                className="no-print"
+                                onClick={() => schichtLoeschen(s.id)}
+                                style={{
+                                  position: "absolute",
+                                  top: "4px",
+                                  right: "4px",
+                                  background: "rgba(0,0,0,0.3)",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  fontSize: "8px",
+                                  color: "#ef4444",
+                                  borderRadius: "50%",
+                                  width: "16px",
+                                  height: "16px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "0.2s",
+                                  fontWeight: "bold",
+                                }}
+                                onMouseOver={(e) =>
+                                  (e.target.style.background =
+                                    "rgba(239,68,68,0.2)")
+                                }
+                                onMouseOut={(e) =>
+                                  (e.target.style.background =
+                                    "rgba(0,0,0,0.3)")
+                                }
+                              >
+                                X
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
               {canEdit && (
                 <button
                   className="no-print"
-                  onClick={() => setAktivesDatum(tag)}
+                  onClick={() => {
+                    setAktivesDatum(tag);
+                    setSchichtMitarbeiter("");
+                    setStartTime("08:00");
+                    setEndTime("16:00");
+                    setSchichtTyp(isAusserHaus ? "Krank" : "Arbeit");
+                    setAttestFile(null);
+                  }}
                   style={{
                     width: "100%",
-                    padding: "10px",
+                    padding: "12px",
                     background: "transparent",
                     border: "none",
                     borderTop: "1px solid #1e293b",
-                    color: "#0ea5e9",
-                    fontSize: "11px",
+                    borderRadius: "0 0 11px 11px",
+                    cursor: "pointer",
+                    color: isAusserHaus ? "#64748b" : "#0ea5e9",
+                    fontSize: "12px",
                     fontWeight: "bold",
+                    textTransform: "uppercase",
+                    transition: "0.2s",
                   }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = isAusserHaus
+                      ? "rgba(100, 116, 139, 0.1)"
+                      : "rgba(14, 165, 233, 0.1)";
+                  }}
+                  onMouseOut={(e) =>
+                    (e.target.style.background = "transparent")
+                  }
                 >
-                  + HINZUFÜGEN
+                  + Hinzufügen
                 </button>
               )}
             </div>
@@ -1831,13 +3270,16 @@ const labelStyle = {
   textTransform: "uppercase",
 };
 const inputStyle = {
-  padding: "12px",
+  padding: "12px 15px",
   background: "#1f2937",
   color: "#f8fafc",
   border: "1px solid #374151",
   borderRadius: "8px",
   width: "100%",
   boxSizing: "border-box",
+  fontSize: "14px",
+  outline: "none",
+  transition: "border 0.2s",
 };
 const btnStyle = {
   cursor: "pointer",
@@ -1846,7 +3288,12 @@ const btnStyle = {
   border: "1px solid #374151",
   borderRadius: "8px",
   fontWeight: "bold",
-  color: "#fff",
+  color: "#f8fafc",
+  transition: "all 0.2s",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "13px",
 };
 const saveBtnStyle = {
   cursor: "pointer",
@@ -1856,6 +3303,11 @@ const saveBtnStyle = {
   border: "none",
   borderRadius: "8px",
   fontWeight: "bold",
+  marginTop: "5px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+  transition: "all 0.2s",
+  fontSize: "12px",
 };
 const textBtnStyle = {
   cursor: "pointer",
@@ -1865,22 +3317,29 @@ const textBtnStyle = {
   padding: "6px 12px",
   color: "#94a3b8",
   borderRadius: "6px",
+  transition: "0.2s",
+  fontWeight: "bold",
 };
-const tabStyle = (isActive, color = "#0ea5e9") => ({
+const tabStyle = (isActive, activeColor = "#0ea5e9") => ({
   cursor: "pointer",
   padding: "10px 18px",
   fontSize: "12px",
   fontWeight: "bold",
-  background: isActive ? `${color}20` : "transparent",
-  color: isActive ? color : "#94a3b8",
-  border: isActive ? `1px solid ${color}` : "1px solid transparent",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  background: isActive ? `${activeColor}20` : "transparent",
+  color: isActive ? activeColor : "#94a3b8",
+  border: isActive ? `1px solid ${activeColor}` : "1px solid transparent",
   borderRadius: "8px",
+  transition: "all 0.2s",
 });
 const thStyle = {
   padding: "15px 20px",
   color: "#94a3b8",
   fontWeight: "bold",
   fontSize: "11px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
   borderBottom: "1px solid #374151",
 };
 const tdStyle = { padding: "15px 20px", color: "#f8fafc", fontSize: "14px" };
