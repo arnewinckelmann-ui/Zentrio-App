@@ -124,7 +124,10 @@ export default function App() {
 
   async function fetchUserProfiles(email) {
     const { data } = await supabase.from("mitarbeiter").select(`*, unternehmen ( name )`).eq("email", email);
-    if (data) { setUserProfiles(data); if (data.length === 1 && !isGod) { setActiveUnternehmenId(data[0].unternehmen_id); setAktiverTab("dienstplan"); } }
+    if (data) {
+      setUserProfiles(data);
+      if (data.length === 1 && !isGod) { setActiveUnternehmenId(data[0].unternehmen_id); setAktiverTab("dienstplan"); }
+    }
   }
 
   async function ladeDaten() {
@@ -313,26 +316,55 @@ export default function App() {
 
   return (
     <div className="App" style={{ backgroundColor: "#0b1120", minHeight: "100vh", color: "#f8fafc", fontFamily: "'Inter', sans-serif", padding: "20px", margin: "0 auto", maxWidth: "1600px" }}>
-      {/* --- NEU: SPEZIELLES DRUCK-CSS --- */}
+      
+      {/* --- MAGISCHER DRUCK-MODUS --- */}
       <style>{`
         body { background-color: #0b1120; margin: 0; } 
         input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
         @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
+        /* WIRD NUR BEIM DRUCKEN ODER PDF EXPORT AKTIVIERT */
         @media print {
-          body, .App { background: white !important; color: black !important; padding: 0 !important; }
+          @page { size: landscape; margin: 0.5cm; }
+          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+          
+          /* Versteckt alles Unnötige */
           .no-print { display: none !important; }
-          .print-bg-white { background: white !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 20px !important; page-break-inside: avoid; }
-          .print-text-dark { color: #000 !important; }
-          .print-grid { display: flex !important; flex-wrap: nowrap !important; width: 100% !important; gap: 4px !important; }
-          .print-day { background: #fff !important; border: 1px solid #ccc !important; flex: 1 1 0 !important; min-width: 0 !important; }
-          .print-day-header { background: #f8fafc !important; color: #000 !important; border-bottom: 1px solid #ccc !important; }
+          
+          /* Kopfbereich mit Datum komprimieren */
+          .print-header-box { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; justify-content: flex-start !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; }
+          .print-header-box h2 { font-size: 16px !important; font-weight: bold !important; color: #000 !important; margin: 0 !important; }
+          .print-header-box strong { color: #000 !important; }
+
+          /* Standorte komprimieren */
+          .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 20px !important; page-break-inside: avoid !important; }
+          h2.print-text-dark { color: #000 !important; font-size: 16px !important; border-bottom: 1px solid #ccc !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
+          
+          /* Kalender Grid anpassen (Kompakt) */
+          .print-grid { display: flex !important; flex-wrap: nowrap !important; width: 100% !important; gap: 4px !important; overflow: visible !important; margin-top: 0 !important; }
+          .print-day { background: #fff !important; border: 1px solid #000 !important; flex: 1 1 0 !important; min-width: 0 !important; min-height: auto !important; border-radius: 0 !important; box-shadow: none !important; }
+          
+          /* Tage (Mo, Di, Mi...) */
+          .print-day-header { background: #f0f0f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; border-radius: 0 !important; line-height: 1.2 !important; text-align: center !important;}
+          .print-day-header span { color: #333 !important; font-size: 10px !important; }
+          
+          /* Schicht-Boxen extrem verkleinern, keine künstlichen Lücken! */
+          .print-shift-container { padding: 4px !important; display: flex !important; flex-direction: column !important; gap: 2px !important; flex: auto !important; }
+          .print-shift-row { gap: 2px !important; margin-bottom: 0 !important; }
+          .print-shift { 
+             margin-top: 0 !important; /* Entfernt die Lücken der Timeline! */
+             min-height: auto !important; /* Entfernt künstliche Höhe! */
+             padding: 4px !important; 
+             border-width: 1px 1px 1px 4px !important; 
+             border-radius: 0 !important;
+          }
+          .print-shift-time { font-size: 10px !important; color: #000 !important; white-space: normal !important; line-height: 1.1 !important; font-weight: normal !important; }
+          .print-shift-name { font-size: 11px !important; color: #000 !important; margin-top: 2px !important; line-height: 1.1 !important; font-weight: bold !important; }
+          
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          @page { size: landscape; margin: 10mm; }
         }
       `}</style>
       
-      {/* HEADER: WIRD BEIM DRUCKEN AUSGEBLENDET */}
       <header className="no-print" style={{ paddingBottom: "20px", borderBottom: "1px solid #1e293b", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "35px" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <ZentrioLogo />
@@ -358,16 +390,14 @@ export default function App() {
         </div>
       </header>
 
-      {/* WOCHEN WÄHLER: NUR DATUM WIRD GEDRUCKT */}
       {["dienstplan", "mein_unternehmen"].includes(aktiverTab) && activeUnternehmenId && (
-        <div className="print-bg-white" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "25px", marginBottom: "35px", background: "#111827", padding: "15px 25px", borderRadius: "12px", border: "1px solid #1e293b", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+        <div className="print-header-box" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "25px", marginBottom: "35px", background: "#111827", padding: "15px 25px", borderRadius: "12px", border: "1px solid #1e293b", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
           <button className="no-print" onClick={() => setWochenStart(new Date(wochenStart.setDate(wochenStart.getDate() - 7)))} style={btnStyle}>Vorherige</button>
-          <h2 className="print-text-dark" style={{ margin: 0, fontSize: "16px", fontWeight: "normal", color: "#94a3b8", letterSpacing: "1px" }}>Woche: <strong className="print-text-dark" style={{ color: "#f8fafc", fontSize: "16px" }}>{wochenStart.toLocaleDateString()} - {wochenEnde.toLocaleDateString()}</strong></h2>
+          <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "normal", color: "#94a3b8", letterSpacing: "1px" }}>Woche: <strong style={{ color: "#f8fafc", fontSize: "16px" }}>{wochenStart.toLocaleDateString()} - {wochenEnde.toLocaleDateString()}</strong></h2>
           <button className="no-print" onClick={() => setWochenStart(new Date(wochenStart.setDate(wochenStart.getDate() + 7)))} style={btnStyle}>Nächste</button>
         </div>
       )}
 
-      {/* --- REITER: SYSTEM ADMIN --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div className="no-print">
           <div style={{ background: "linear-gradient(145deg, #111827, #0b1120)", padding: "30px", borderRadius: "16px", border: "1px solid #1e293b", borderTop: "2px solid #ef4444", marginBottom: "40px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)" }}>
@@ -385,7 +415,7 @@ export default function App() {
           <h2 style={{ color: "#f8fafc", borderBottom: "1px solid #1e293b", paddingBottom: "15px", fontSize: "20px" }}>Kunden Workspaces</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "25px" }}>
             {alleUnternehmen.map((u) => (
-              <div key={u.id} style={{ background: "#111827", border: "1px solid #1e293b", padding: "25px", borderRadius: "16px", transition: "transform 0.2s", cursor: "default" }}>
+              <div key={u.id} style={{ background: "#111827", border: "1px solid #1e293b", padding: "25px", borderRadius: "16px", transition: "transform 0.2s", cursor: "default" }} onMouseOver={(e) => (e.currentTarget.style.transform = "translateY(-4px)")} onMouseOut={(e) => (e.currentTarget.style.transform = "none")}>
                 <h3 style={{ margin: "0 0 15px 0", fontSize: "18px", color: "#0ea5e9" }}>{u.name}</h3>
                 <div style={{ fontSize: "13px", color: "#94a3b8", lineHeight: "1.8", marginBottom: "25px", background: "#0b1120", padding: "15px", borderRadius: "8px", border: "1px solid #1e293b" }}>
                   <span style={{ color: "#64748b", width: "70px", display: "inline-block" }}>Sitz:</span> <span style={{ color: "#f8fafc" }}>{u.sitz || "-"}</span><br />
@@ -406,7 +436,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: MEIN UNTERNEHMEN --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div className="no-print">
           <div style={{ background: "#111827", padding: "30px", borderRadius: "16px", border: "1px solid #1e293b", marginBottom: "40px" }}>
@@ -424,7 +453,7 @@ export default function App() {
                   <div><label style={labelStyle}>E-Mail (Login)</label><input type="email" value={neueEmail} onChange={(e) => setNeueEmail(e.target.value)} required style={inputStyle} /></div>
                   <div style={{ display: "flex", gap: "15px" }}><div style={{ flex: 1 }}><label style={labelStyle}>Soll Std/Wo</label><input type="number" step="0.5" value={neueWochenstunden} onChange={(e) => setNeueWochenstunden(e.target.value)} required style={inputStyle} /></div><div style={{ flex: 1 }}><label style={labelStyle}>Urlaub/Jahr</label><input type="number" value={neuerUrlaubsAnspruch} onChange={(e) => setNeuerUrlaubsAnspruch(e.target.value)} required style={inputStyle} /></div></div>
                   <div><label style={labelStyle}>System-Rolle</label><select value={neueRolle} onChange={(e) => setNeueRolle(e.target.value)} style={inputStyle}><option>Trainer</option><option>Studioleiter</option><option>Geschäftsführer</option><option>Inhaber</option></select></div>
-                  <label style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "10px", color: "#94a3b8", cursor: "pointer", marginTop: "5px" }}><input type="checkbox" checked={neueFreigabe} onChange={(e) => setNeueFreigabe(e.target.checked)} style={{ width: "16px", height: "16px", accentColor: "#0ea5e9" }} /> Planungs-Rechte erteilen</label>
+                  <label style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "10px", color: "#94a3b8", cursor: "pointer", marginTop: "5px" }}><input type="checkbox" checked={neueFreigabe} onChange={(e) => setNeueFreigabe(e.target.checked)} style={{ width: "16px", height: "16px" }} /> Planungs-Rechte erteilen</label>
                   <button type="submit" style={{ ...saveBtnStyle, marginTop: "10px" }}>Hinzufügen</button>
                 </form>
               </div>
@@ -448,16 +477,13 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
-          {/* NEU: DRUCKEN BUTTON HINZUGEFÜGT */}
-          <div className="no-print" style={{ display: "flex", gap: "12px", overflowX: "auto", marginBottom: "35px", paddingBottom: "10px", alignItems: "center" }}>
+          <div className="no-print" style={{ display: "flex", gap: "12px", overflowX: "auto", marginBottom: "35px", paddingBottom: "10px" }}>
             <button onClick={() => setAktivesStudioView("all")} style={{ ...btnStyle, padding: "10px 20px", background: aktivesStudioView === "all" ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "#111827", color: aktivesStudioView === "all" ? "#fff" : "#94a3b8", border: aktivesStudioView === "all" ? "none" : "1px solid #1e293b" }}>Gesamt-Ansicht</button>
             {studios.map((s) => (
               <button key={s.id} onClick={() => setAktivesStudioView(s.id.toString())} style={{ ...btnStyle, padding: "10px 20px", background: aktivesStudioView === s.id.toString() ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "#111827", color: aktivesStudioView === s.id.toString() ? "#fff" : "#94a3b8", border: aktivesStudioView === s.id.toString() ? "none" : "1px solid #1e293b" }}>{s.name}</button>
             ))}
-            
             <button onClick={() => window.print()} style={{ ...btnStyle, marginLeft: "auto", background: "linear-gradient(135deg, #10b981, #059669)", border: "none", boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)" }}>🖨️ PDF / Drucken</button>
           </div>
           {studios.filter((studio) => aktivesStudioView === "all" || studio.id.toString() === aktivesStudioView).map((studio) => (
@@ -467,7 +493,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: SCHULE --- */}
       {aktiverTab === "schule" && activeUnternehmenId && (
         <div className="no-print" style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
           {canEdit && (
@@ -498,7 +523,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: URLAUB --- */}
       {aktiverTab === "urlaub" && activeUnternehmenId && (
         <div className="no-print" style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ background: "#111827", padding: "30px", borderRadius: "16px", flex: "0 0 340px", border: "1px solid #1e293b", borderTop: "3px solid #f59e0b" }}>
@@ -529,7 +553,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: SEMINARE --- */}
       {aktiverTab === "seminare" && activeUnternehmenId && (
         <div className="no-print" style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap" }}>
           {isAdmin && (
@@ -576,13 +599,10 @@ export default function App() {
           </div>
         </div>
       )}
-      
-      {toast.visible && (<div className="no-print" style={{ position: "fixed", bottom: "40px", left: "50%", transform: "translateX(-50%)", background: toast.type === "error" ? "#ef4444" : "#10b981", color: "#fff", padding: "14px 24px", borderRadius: "10px", boxShadow: "0 10px 25px rgba(0,0,0,0.5)", zIndex: 9999, fontWeight: "bold", fontSize: "14px" }}>{toast.type === "success" ? "✅" : "⚠️"} {toast.message}</div>)}
     </div>
   );
 }
 
-// --- KALENDER KOMPONENTE ---
 function StudioKalenderKachel({ studio, isAusserHaus, alleSchichten, alleMitarbeiter, ladeDaten, wochentage, attestNachtragen, canEdit, currentUnternehmenId, showToast }) {
   const meineSchichten = alleSchichten.filter((s) => isAusserHaus ? s.studio_id === null : s.studio_id === studio.id);
   const [aktivesDatum, setAktivesDatum] = useState(null);
@@ -604,8 +624,7 @@ function StudioKalenderKachel({ studio, isAusserHaus, alleSchichten, alleMitarbe
 
   async function schichtLoeschen(id) {
     if (!window.confirm("Eintrag wirklich löschen?")) return;
-    await supabase.from("schichten").delete().eq("id", id);
-    ladeDaten(); showToast("Eintrag gelöscht.", "success");
+    await supabase.from("schichten").delete().eq("id", id); ladeDaten(); showToast("Eintrag gelöscht.", "success");
   }
 
   async function neueSchichtSpeichern(event) {
@@ -671,11 +690,11 @@ function StudioKalenderKachel({ studio, isAusserHaus, alleSchichten, alleMitarbe
                 {tag.toLocaleDateString("de-DE", { weekday: "short" })}<br /><span style={{ fontSize: "12px", fontWeight: "normal", color: isToday ? "#38bdf8" : "#94a3b8", display: "inline-block", marginTop: "2px" }}>{tag.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
               </div>
               
-              <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
+              <div className="print-shift-container" style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
                 {overlappingGroups.map((group, gIndex) => {
                   const groupStart = Math.min(...group.map((s) => new Date(s.startzeit).getTime() || 0));
                   return (
-                    <div key={gIndex} style={{ display: "flex", gap: "6px", width: "100%" }}>
+                    <div key={gIndex} className="print-shift-row" style={{ display: "flex", gap: "6px", width: "100%" }}>
                       {group.map((s) => {
                         const mColor = getMitarbeiterColor(s.mitarbeiter?.name); 
                         const theme = getThemeColors(s.typ, mColor);
@@ -683,20 +702,20 @@ function StudioKalenderKachel({ studio, isAusserHaus, alleSchichten, alleMitarbe
                         const durationMinutes = Math.max(0, ((new Date(s.endzeit).getTime() || 0) - (new Date(s.startzeit).getTime() || 0)) / 60000) || 0;
 
                         return (
-                          <div key={s.id} style={{ 
+                          <div key={s.id} className="print-shift" style={{ 
                             flex: 1, marginTop: `${offsetMinutes * 0.8}px`, minHeight: `${Math.max(60, durationMinutes * 0.8)}px`, background: theme.bg, 
-                            padding: "6px 20px 6px 8px", borderRadius: "6px", borderLeft: `4px solid ${theme.border}`, borderTop: `1px solid ${theme.borderSoft}`, borderRight: `1px solid ${theme.borderSoft}`, borderBottom: `1px solid ${theme.borderSoft}`, 
+                            padding: "8px 24px 8px 8px", borderRadius: "6px", borderLeft: `4px solid ${theme.border}`, borderTop: `1px solid ${theme.borderSoft}`, borderRight: `1px solid ${theme.borderSoft}`, borderBottom: `1px solid ${theme.borderSoft}`, 
                             position: "relative", minWidth: 0
                           }}>
                             {s.typ !== "Arbeit" && (<div style={{ fontSize: "8px", background: theme.border, color: "#fff", display: "inline-block", padding: "2px 5px", borderRadius: "4px", marginBottom: "4px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" }}>{s.typ}</div>)}
                             
-                            <div className="print-text-dark" style={{ fontWeight: "bold", color: "#f8fafc", fontSize: "10px", whiteSpace: "nowrap" }}>
+                            <div className="print-shift-time" style={{ fontWeight: "bold", color: "#f8fafc", fontSize: "11px", whiteSpace: "nowrap" }}>
                               {new Date(s.startzeit).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} - {new Date(s.endzeit).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
                             </div>
                             
-                            <div className="print-text-dark" style={{ display: "flex", alignItems: "flex-start", gap: "5px", color: theme.text, fontWeight: "bold", marginTop: "4px", fontSize: "11px", lineHeight: "1.2", wordWrap: "break-word" }}>
-                              <div style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: mColor, flexShrink: 0, marginTop: "3px" }}></div>
-                              <span>{s.mitarbeiter?.name || "Alle"}</span>
+                            <div className="print-shift-name" style={{ display: "flex", alignItems: "flex-start", gap: "5px", color: theme.text, fontWeight: "bold", marginTop: "4px", fontSize: "12px", lineHeight: "1.4", wordWrap: "break-word" }}>
+                              <div style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: mColor, flexShrink: 0, marginTop: "4px" }}></div>
+                              <span style={{ display: "block" }}>{s.mitarbeiter?.name || "Alle"}</span>
                             </div>
 
                             {canEdit && (<button className="no-print" onClick={() => schichtLoeschen(s.id)} style={{ position: "absolute", top: "4px", right: "4px", background: "rgba(0,0,0,0.3)", border: "none", cursor: "pointer", fontSize: "8px", color: "#ef4444", borderRadius: "50%", width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.2s", fontWeight: "bold" }} onMouseOver={(e) => (e.target.style.background = "rgba(239,68,68,0.2)")} onMouseOut={(e) => (e.target.style.background = "rgba(0,0,0,0.3)")}>X</button>)}
