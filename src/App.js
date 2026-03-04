@@ -474,7 +474,7 @@ export default function App() {
       .insert([
         {
           mitarbeiter_id: urlaubMitarbeiter,
-          startzeit: starttoISOString(),
+          startzeit: start.toISOString(),
           endzeit: ende.toISOString(),
           typ: "Urlaub",
           status: "Beantragt",
@@ -763,6 +763,8 @@ export default function App() {
               zIndex: 9999,
               fontWeight: "bold",
               fontSize: "14px",
+              animation:
+                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
             }}
           >
             {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
@@ -876,14 +878,16 @@ export default function App() {
         maxWidth: "1600px",
       }}
     >
-      {/* --- DAS PERFEKTE DRUCK-CSS (ECHTE TABELLE) --- */}
+      {/* --- MAGISCHER DRUCK-MODUS (ECHTE TABELLE) --- */}
       <style>{`
         body { background-color: #0b1120; margin: 0; } 
         input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
-        
+        @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* WIRD NUR BEIM DRUCKEN ODER PDF EXPORT AKTIVIERT */
         @media print {
-          @page { size: landscape; margin: 10mm; }
-          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+          @page { size: landscape; margin: 8mm; }
+          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
           
           .no-print { display: none !important; }
           
@@ -891,25 +895,42 @@ export default function App() {
           .print-header-box h2 { font-size: 16px !important; color: #000 !important; margin: 0 !important; font-weight: bold !important; }
           .print-header-box strong { color: #000 !important; }
 
-          .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; page-break-inside: avoid !important; }
-          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
+          .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 20px !important; page-break-inside: avoid !important; }
+          h2.print-text-dark { color: #000 !important; font-size: 14px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; margin-top: 10px !important; }
           
-          /* TABELLEN-OPTIK OHNE LÜCKEN */
-          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
-          .print-day { background: #fff !important; border: none !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; min-height: 120px !important; box-shadow: none !important; display: block !important; }
+          /* TABELLEN-OPTIK OHNE LÜCKEN UND MIT FIXEN SPALTEN */
+          .print-grid { 
+             display: grid !important; 
+             grid-template-columns: repeat(7, 1fr) !important; /* 7 exakt gleich breite Spalten */
+             gap: 4px !important; 
+             width: 100% !important; 
+             border-top: none !important; 
+             border-left: none !important; 
+             margin-top: 0 !important; 
+             overflow: hidden !important; /* Kein Überlappen! */
+             padding-bottom: 0 !important; 
+          }
+          .print-day { 
+             background: #fff !important; 
+             border: 1px solid #000 !important; 
+             border-radius: 0 !important; 
+             min-height: 150px !important; /* Feste Mindesthöhe für die Optik */
+             box-shadow: none !important; 
+             display: block !important; /* Verhindert Flex-Überlappung beim Druck */
+          }
           
-          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 6px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; }
-          .print-day-header span { color: #475569 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
+          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; line-height: 1.2 !important; }
+          .print-day-header span { color: #333 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
           
           /* SCHICHTEN SAUBER UNTEREINANDER STAPELN */
-          .print-shift-container { padding: 6px !important; display: block !important; }
+          .print-shift-container { padding: 4px !important; display: block !important; }
           .print-shift-row { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
           
           .print-shift { 
              display: block !important;
-             margin: 0 0 6px 0 !important; /* Kein künstlicher Abstand mehr nach oben! */
-             min-height: auto !important; /* Keine künstliche Höhe mehr! */
-             padding: 6px !important; 
+             margin: 0 0 4px 0 !important; /* Null Lücken nach oben (Timeline killen) */
+             min-height: auto !important; /* Null künstliche Höhe */
+             padding: 4px !important; 
              border: 1px solid #cbd5e1 !important; 
              border-left-width: 4px !important; 
              border-radius: 4px !important;
@@ -919,7 +940,7 @@ export default function App() {
              box-sizing: border-box !important;
           }
           .print-shift-time { font-size: 10px !important; color: #333 !important; white-space: nowrap !important; font-weight: normal !important; display: block !important; margin-bottom: 2px !important; }
-          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; }
+          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; margin-top: 2px !important; }
           
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
@@ -1099,6 +1120,7 @@ export default function App() {
               Vorherige
             </button>
             <h2
+              className="print-text-dark"
               style={{
                 margin: 0,
                 fontSize: "16px",
@@ -1108,7 +1130,10 @@ export default function App() {
               }}
             >
               Woche:{" "}
-              <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+              <strong
+                className="print-text-dark"
+                style={{ color: "#f8fafc", fontSize: "16px" }}
+              >
                 {wochenStart.toLocaleDateString()} -{" "}
                 {wochenEnde.toLocaleDateString()}
               </strong>
@@ -1127,6 +1152,7 @@ export default function App() {
           </div>
         )}
 
+      {/* --- REITER: SYSTEM ADMIN (DIE KOMPLETTEN INFOS SIND ZURÜCK) --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div className="no-print">
           <div
@@ -1137,6 +1163,7 @@ export default function App() {
               border: "1px solid #1e293b",
               borderTop: "2px solid #ef4444",
               marginBottom: "40px",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
             }}
           >
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
@@ -1156,6 +1183,30 @@ export default function App() {
                   value={godNewCompName}
                   onChange={(e) => setGodNewCompName(e.target.value)}
                   required
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Sitz / Adresse</label>
+                <input
+                  value={godCompSitz}
+                  onChange={(e) => setGodCompSitz(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Inhaber</label>
+                <input
+                  value={godCompInhaber}
+                  onChange={(e) => setGodCompInhaber(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Geschäftsführer</label>
+                <input
+                  value={godCompGF}
+                  onChange={(e) => setGodCompGF(e.target.value)}
                   style={inputStyle}
                 />
               </div>
@@ -1188,7 +1239,7 @@ export default function App() {
                   marginTop: "24px",
                 }}
               >
-                Gründen
+                Mandant gründen
               </button>
             </form>
           </div>
@@ -1217,7 +1268,13 @@ export default function App() {
                   border: "1px solid #1e293b",
                   padding: "25px",
                   borderRadius: "16px",
+                  transition: "transform 0.2s",
+                  cursor: "default",
                 }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-4px)")
+                }
+                onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
                 <h3
                   style={{
@@ -1228,6 +1285,93 @@ export default function App() {
                 >
                   {u.name}
                 </h3>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "#94a3b8",
+                    lineHeight: "1.8",
+                    marginBottom: "25px",
+                    background: "#0b1120",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    border: "1px solid #1e293b",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    Sitz:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>{u.sitz || "-"}</span>
+                  <br />
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    Inhaber:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>{u.inhaber || "-"}</span>
+                  <br />
+                  <span
+                    style={{
+                      color: "#64748b",
+                      width: "70px",
+                      display: "inline-block",
+                    }}
+                  >
+                    GF:
+                  </span>{" "}
+                  <span style={{ color: "#f8fafc" }}>
+                    {u.geschaeftsfuehrer || "-"}
+                  </span>
+                </div>
+                <div
+                  style={{ display: "flex", gap: "15px", marginBottom: "20px" }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(14, 165, 233, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#0ea5e9",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(14, 165, 233, 0.2)",
+                    }}
+                  >
+                    Studios
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.studios?.length || 0}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      background: "rgba(99, 102, 241, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#818cf8",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(99, 102, 241, 0.2)",
+                    }}
+                  >
+                    Mitarbeiter
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.mitarbeiter?.length || 0}
+                    </strong>
+                  </div>
+                </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     onClick={() => {
@@ -1239,6 +1383,9 @@ export default function App() {
                       flex: 1,
                       fontSize: "13px",
                       background: "#1f2937",
+                      color: "#f8fafc",
+                      border: "1px solid #374151",
+                      boxShadow: "none",
                     }}
                   >
                     Öffnen
@@ -1256,6 +1403,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: MEIN UNTERNEHMEN --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div className="no-print">
           <div
@@ -1441,7 +1589,11 @@ export default function App() {
                       type="checkbox"
                       checked={neueFreigabe}
                       onChange={(e) => setNeueFreigabe(e.target.checked)}
-                      style={{ width: "16px", height: "16px" }}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#0ea5e9",
+                      }}
                     />{" "}
                     Planungs-Rechte erteilen
                   </label>
@@ -1596,7 +1748,16 @@ export default function App() {
                       ) : (
                         <tr
                           key={m.id}
-                          style={{ borderBottom: "1px solid #1e293b" }}
+                          style={{
+                            borderBottom: "1px solid #1e293b",
+                            transition: "0.2s",
+                          }}
+                          onMouseOver={(e) =>
+                            (e.currentTarget.style.background = "#111827")
+                          }
+                          onMouseOut={(e) =>
+                            (e.currentTarget.style.background = "transparent")
+                          }
                         >
                           <td style={tdStyle}>
                             <strong
@@ -1768,6 +1929,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
@@ -2498,6 +2660,28 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {toast.visible && (
+        <div
+          className="no-print"
+          style={{
+            position: "fixed",
+            bottom: "40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: toast.type === "error" ? "#ef4444" : "#10b981",
+            color: "#fff",
+            padding: "14px 24px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            fontWeight: "bold",
+            fontSize: "14px",
+          }}
+        >
+          {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
+        </div>
+      )}
     </div>
   );
 }
@@ -2814,7 +2998,7 @@ function StudioKalenderKachel({
         className="print-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(7, minmax(180px, 1fr))",
           gap: "12px",
           marginTop: "20px",
           overflowX: "auto",
@@ -3026,11 +3210,13 @@ function StudioKalenderKachel({
                                   borderRadius: "50%",
                                   backgroundColor: mColor,
                                   flexShrink: 0,
-                                  marginTop: "3px",
+                                  marginTop: "4px",
                                 }}
                               ></div>
                               <span style={{ display: "block" }}>
-                                {s.mitarbeiter?.name || "Alle"}
+                                {s.mitarbeiter?.name
+                                  ? s.mitarbeiter.name.split(" ")[0]
+                                  : "Alle"}
                               </span>
                             </div>
 
