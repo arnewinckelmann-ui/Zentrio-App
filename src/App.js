@@ -152,7 +152,7 @@ export default function App() {
   const [neueEmail, setNeueEmail] = useState("");
   const [neueWochenstunden, setNeueWochenstunden] = useState("");
   const [neuerUrlaubsAnspruch, setNeuerUrlaubsAnspruch] = useState("24");
-  const [neueRolle, setNeueRolle] = useState("Trainer");
+  const [neueRolle, setNeueRolle] = useState("Mitarbeiter");
   const [neueFreigabe, setNeueFreigabe] = useState(false);
   const [neuesStudioName, setNeuesStudioName] = useState("");
 
@@ -484,23 +484,17 @@ export default function App() {
     setSeminarTitel("");
     setSeminarStart("");
     setSeminarEnde("");
-    showToast("Seminar geplant.", "success");
+    showToast("Geplant.", "success");
   }
 
-  // --- DIE NEUE SEMINAR MULTI-ZUWEISEN FUNKTION ---
   async function seminarMultiZuweisen(sem) {
     const ids = selectedSeminarMembers[sem.id] || [];
-    if (ids.length === 0)
-      return showToast(
-        "Bitte wähle mindestens einen Mitarbeiter aus!",
-        "error"
-      );
+    if (ids.length === 0) return showToast("Niemand gewählt!", "error");
 
     setIsLoading(true);
     const start = new Date(sem.startzeit);
     const ende = new Date(sem.endzeit);
 
-    // Prüfen, ob jemand aus der Auswahl schon anderweitig verplant ist
     const ueberschneidung = schichten.some(
       (s) =>
         ids.includes(s.mitarbeiter_id) &&
@@ -511,7 +505,7 @@ export default function App() {
     if (ueberschneidung) {
       setIsLoading(false);
       return showToast(
-        "Achtung: Einer der gewählten Mitarbeiter ist zu dieser Zeit bereits verplant!",
+        "Achtung: Jemand ist zu dieser Zeit bereits verplant!",
         "error"
       );
     }
@@ -529,7 +523,7 @@ export default function App() {
     setSelectedSeminarMembers((prev) => ({ ...prev, [sem.id]: [] }));
     ladeDaten();
     setIsLoading(false);
-    showToast(`${ids.length} Mitarbeiter erfolgreich zugewiesen.`, "success");
+    showToast(`${ids.length} zugewiesen.`, "success");
   }
 
   async function schichtLoeschen(id) {
@@ -865,7 +859,7 @@ export default function App() {
         maxWidth: "1600px",
       }}
     >
-      {/* --- DAS PERFEKTE DRUCK-CSS (ECHTE TABELLE OHNE VERSCHIEBUNGEN) --- */}
+      {/* --- DRUCK-CSS --- */}
       <style>{`
         body { background-color: #0b1120; margin: 0; } 
         input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
@@ -875,23 +869,16 @@ export default function App() {
           @page { size: landscape; margin: 8mm; }
           body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
           .no-print { display: none !important; }
-          
           .print-header-box { display: flex !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; justify-content: flex-start !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; }
           .print-header-box h2 { font-size: 16px !important; color: #000 !important; margin: 0 !important; font-weight: bold !important; }
-          
           .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; page-break-inside: avoid !important; }
           h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; margin-top: 10px !important; }
-          
-          /* FIXIERTES 7-SPALTEN GRID */
-          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; width: 100% !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; padding-bottom: 0 !important; }
+          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; width: 100% !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
           .print-day { background: #fff !important; border: none !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; min-height: 120px !important; box-shadow: none !important; display: block !important; }
-          
           .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; }
-          .print-day-header span { color: #475569 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
-          
+          .print-day-header span { color: #333 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
           .print-shift-container { padding: 4px !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
           .print-shift { display: block !important; margin: 0 !important; min-height: auto !important; padding: 4px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
-          
           .print-shift-time { font-size: 10px !important; color: #333 !important; white-space: nowrap !important; font-weight: normal !important; display: block !important; margin-bottom: 2px !important; }
           .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; margin-top: 2px !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -1020,7 +1007,7 @@ export default function App() {
                 ...btnStyle,
                 background: "transparent",
                 color: "#0ea5e9",
-                border: "1px solid #0ea5e9",
+                borderColor: "#0ea5e9",
               }}
             >
               Wechseln
@@ -1099,7 +1086,7 @@ export default function App() {
           </div>
         )}
 
-      {/* SYSTEM ZENTRALE VOLLSTÄNDIG */}
+      {/* --- REITER: SYSTEM ADMIN (VOLLSTÄNDIG) --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div className="no-print">
           <div
@@ -1214,9 +1201,20 @@ export default function App() {
                   border: "1px solid #1e293b",
                   padding: "25px",
                   borderRadius: "16px",
+                  transition: "transform 0.2s",
                 }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-4px)")
+                }
+                onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <h3 style={{ margin: "0 0 15px 0", color: "#0ea5e9" }}>
+                <h3
+                  style={{
+                    margin: "0 0 15px 0",
+                    fontSize: "18px",
+                    color: "#0ea5e9",
+                  }}
+                >
                   {u.name}
                 </h3>
                 <div
@@ -1224,7 +1222,7 @@ export default function App() {
                     fontSize: "13px",
                     color: "#94a3b8",
                     lineHeight: "1.8",
-                    marginBottom: "20px",
+                    marginBottom: "25px",
                     background: "#0b1120",
                     padding: "15px",
                     borderRadius: "8px",
@@ -1319,7 +1317,6 @@ export default function App() {
                       background: "#1f2937",
                       color: "#f8fafc",
                       border: "1px solid #374151",
-                      boxShadow: "none",
                     }}
                   >
                     Öffnen
@@ -1337,7 +1334,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MEIN UNTERNEHMEN */}
+      {/* --- REITER: MEIN UNTERNEHMEN --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div className="no-print">
           <div
@@ -1502,7 +1499,7 @@ export default function App() {
                       onChange={(e) => setNeueRolle(e.target.value)}
                       style={inputStyle}
                     >
-                      <option>Trainer</option>
+                      <option>Mitarbeiter</option>
                       <option>Studioleiter</option>
                       <option>Geschäftsführer</option>
                       <option>Inhaber</option>
@@ -1613,7 +1610,7 @@ export default function App() {
                               }
                               style={{ ...inputStyle, padding: "8px" }}
                             >
-                              <option>Trainer</option>
+                              <option>Mitarbeiter</option>
                               <option>Studioleiter</option>
                               <option>Geschäftsführer</option>
                               <option>Inhaber</option>
@@ -1863,7 +1860,7 @@ export default function App() {
         </div>
       )}
 
-      {/* DIENSTPLAN */}
+      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
@@ -1961,301 +1958,7 @@ export default function App() {
         </div>
       )}
 
-      {/* SEMINARE (MIT NEUEM MULTI-SELECT) */}
-      {aktiverTab === "seminare" && activeUnternehmenId && (
-        <div
-          className="no-print"
-          style={{
-            display: "flex",
-            gap: "40px",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-          }}
-        >
-          {isAdmin && (
-            <div
-              style={{
-                background: "#111827",
-                padding: "30px",
-                borderRadius: "16px",
-                flex: "0 0 340px",
-                border: "1px solid #1e293b",
-                borderTop: "3px solid #8b5cf6",
-              }}
-            >
-              <h3 style={{ marginTop: 0, color: "#8b5cf6" }}>Neues Seminar</h3>
-              <form
-                onSubmit={seminarSpeichern}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "18px",
-                  marginTop: "20px",
-                }}
-              >
-                <div>
-                  <label style={labelStyle}>Thema</label>
-                  <input
-                    type="text"
-                    value={seminarTitel}
-                    onChange={(e) => setSeminarTitel(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Start</label>
-                  <input
-                    type="datetime-local"
-                    value={seminarStart}
-                    onChange={(e) => setSeminarStart(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Ende</label>
-                  <input
-                    type="datetime-local"
-                    value={seminarEnde}
-                    onChange={(e) => setSeminarEnde(e.target.value)}
-                    required
-                    style={inputStyle}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  style={{
-                    ...saveBtnStyle,
-                    background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
-                  }}
-                >
-                  Planen
-                </button>
-              </form>
-            </div>
-          )}
-          <div style={{ flex: "1 1 500px" }}>
-            <h3 style={{ marginTop: 0 }}>Geplante Seminare</h3>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "20px",
-                marginTop: "20px",
-              }}
-            >
-              {seminare.map((sem) => {
-                const assigned = schichten.filter(
-                  (s) =>
-                    s.typ === "Seminar" &&
-                    new Date(s.startzeit).getTime() ===
-                      new Date(sem.startzeit).getTime()
-                );
-                return (
-                  <div
-                    key={sem.id}
-                    style={{
-                      background: "#111827",
-                      padding: "20px",
-                      borderRadius: "12px",
-                      borderLeft: "4px solid #8b5cf6",
-                      flex: "1 1 350px",
-                      border: "1px solid #1e293b",
-                    }}
-                  >
-                    <h4 style={{ margin: "0 0 8px 0" }}>{sem.titel}</h4>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "#94a3b8",
-                        margin: "0 0 15px 0",
-                      }}
-                    >
-                      {new Date(sem.startzeit).toLocaleString("de-DE")} -{" "}
-                      {new Date(sem.endzeit).toLocaleTimeString("de-DE")} Uhr
-                    </p>
-
-                    {/* MULTI-SELECT CHECKBOXEN */}
-                    {isAdmin && (
-                      <div
-                        style={{
-                          borderTop: "1px solid #1e293b",
-                          paddingTop: "15px",
-                          marginBottom: "15px",
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            marginBottom: "10px",
-                            color: "#f8fafc",
-                          }}
-                        >
-                          Mitarbeiter hinzufügen:
-                        </p>
-                        <div
-                          style={{
-                            maxHeight: "140px",
-                            overflowY: "auto",
-                            background: "#0b1120",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            border: "1px solid #1e293b",
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "8px",
-                          }}
-                        >
-                          {mitarbeiter
-                            .filter(
-                              (m) =>
-                                !assigned.some((a) => a.mitarbeiter_id === m.id)
-                            )
-                            .map((m) => (
-                              <label
-                                key={m.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  cursor: "pointer",
-                                  fontSize: "12px",
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={(
-                                    selectedSeminarMembers[sem.id] || []
-                                  ).includes(m.id)}
-                                  onChange={(e) => {
-                                    const current =
-                                      selectedSeminarMembers[sem.id] || [];
-                                    setSelectedSeminarMembers({
-                                      ...selectedSeminarMembers,
-                                      [sem.id]: e.target.checked
-                                        ? [...current, m.id]
-                                        : current.filter((id) => id !== m.id),
-                                    });
-                                  }}
-                                  style={{ accentColor: "#8b5cf6" }}
-                                />{" "}
-                                {m.name}
-                              </label>
-                            ))}
-                        </div>
-                        <button
-                          onClick={() => seminarMultiZuweisen(sem)}
-                          style={{
-                            ...saveBtnStyle,
-                            width: "100%",
-                            marginTop: "10px",
-                            background:
-                              "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-                          }}
-                        >
-                          Gewählte hinzufügen
-                        </button>
-                      </div>
-                    )}
-
-                    {/* EINGETEILTE MITARBEITER */}
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        background: "#0b1120",
-                        padding: "12px",
-                        borderRadius: "8px",
-                        border: "1px solid #1e293b",
-                      }}
-                    >
-                      <strong style={{ color: "#e2e8f0" }}>Teilnehmer:</strong>
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
-                        }}
-                      >
-                        {assigned.length > 0 ? (
-                          assigned.map((a) => {
-                            const mColor = getMitarbeiterColor(
-                              a.mitarbeiter?.name
-                            );
-                            return (
-                              <div
-                                key={a.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  background: "#1f2937",
-                                  padding: "4px 8px",
-                                  borderRadius: "4px",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px",
-                                    color: "#94a3b8",
-                                    fontSize: "12px",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: "6px",
-                                      height: "6px",
-                                      borderRadius: "50%",
-                                      backgroundColor: mColor,
-                                    }}
-                                  ></div>
-                                  {a.mitarbeiter?.name}
-                                </span>
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => schichtLoeschen(a.id)}
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      color: "#ef4444",
-                                      cursor: "pointer",
-                                      fontSize: "10px",
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    X
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              color: "#64748b",
-                              fontStyle: "italic",
-                            }}
-                          >
-                            Niemand eingeteilt.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SCHULE & URLAUB */}
+      {/* --- REITER: SCHULE --- */}
       {aktiverTab === "schule" && activeUnternehmenId && (
         <div
           className="no-print"
@@ -2278,7 +1981,7 @@ export default function App() {
               }}
             >
               <h3 style={{ marginTop: 0, color: "#10b981", fontSize: "18px" }}>
-                Blockunterricht
+                Neuer Blockunterricht
               </h3>
               <form
                 onSubmit={schuleSpeichern}
@@ -2329,7 +2032,7 @@ export default function App() {
                 </div>
                 <div style={{ display: "flex", gap: "15px" }}>
                   <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>Von</label>
+                    <label style={labelStyle}>Startzeit</label>
                     <input
                       type="time"
                       value={schuleStartZeit}
@@ -2339,7 +2042,7 @@ export default function App() {
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>Bis</label>
+                    <label style={labelStyle}>Endzeit</label>
                     <input
                       type="time"
                       value={schuleEndZeit}
@@ -2356,14 +2059,14 @@ export default function App() {
                     background: "linear-gradient(135deg, #10b981, #059669)",
                   }}
                 >
-                  Eintragen
+                  Block eintragen
                 </button>
               </form>
             </div>
           )}
           <div style={{ flex: "1 1 500px" }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
-              Ausbildungen
+              Geplante Ausbildungen
             </h3>
             <div
               style={{
@@ -2461,6 +2164,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: URLAUB --- */}
       {aktiverTab === "urlaub" && activeUnternehmenId && (
         <div
           className="no-print"
@@ -2501,7 +2205,7 @@ export default function App() {
                   required
                   style={inputStyle}
                 >
-                  <option value="">-- Wer? --</option>
+                  <option value="">-- Wer beantragt? --</option>
                   {mitarbeiter.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
@@ -2510,7 +2214,7 @@ export default function App() {
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Vom</label>
+                <label style={labelStyle}>Vom (inkl.)</label>
                 <input
                   type="date"
                   value={urlaubStart}
@@ -2520,7 +2224,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Bis</label>
+                <label style={labelStyle}>Bis (inkl.)</label>
                 <input
                   type="date"
                   value={urlaubEnde}
@@ -2542,7 +2246,7 @@ export default function App() {
           </div>
           <div style={{ flex: "1 1 500px" }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
-              Offene Anträge
+              Ausstehende Anträge
             </h3>
             <div style={{ marginTop: "20px" }}>
               {schichten
@@ -2653,11 +2357,314 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* --- REITER: SEMINARE (MIT MULTI-SELECT UND LÖSCHEN) --- */}
+      {aktiverTab === "seminare" && activeUnternehmenId && (
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          {isAdmin && (
+            <div
+              style={{
+                background: "#111827",
+                padding: "30px",
+                borderRadius: "16px",
+                flex: "0 0 340px",
+                border: "1px solid #1e293b",
+                borderTop: "3px solid #8b5cf6",
+              }}
+            >
+              <h3 style={{ marginTop: 0, color: "#8b5cf6", fontSize: "18px" }}>
+                Neues Seminar
+              </h3>
+              <form
+                onSubmit={seminarSpeichern}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                  marginTop: "20px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Titel / Thema</label>
+                  <input
+                    type="text"
+                    value={seminarTitel}
+                    onChange={(e) => setSeminarTitel(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Start</label>
+                  <input
+                    type="datetime-local"
+                    value={seminarStart}
+                    onChange={(e) => setSeminarStart(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ende</label>
+                  <input
+                    type="datetime-local"
+                    value={seminarEnde}
+                    onChange={(e) => setSeminarEnde(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  style={{
+                    ...saveBtnStyle,
+                    background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+                  }}
+                >
+                  Planen
+                </button>
+              </form>
+            </div>
+          )}
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Geplante Fortbildungen
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "20px",
+                marginTop: "20px",
+              }}
+            >
+              {seminare.map((sem) => {
+                const assigned = schichten.filter(
+                  (s) =>
+                    s.typ === "Seminar" &&
+                    new Date(s.startzeit).getTime() ===
+                      new Date(sem.startzeit).getTime()
+                );
+                return (
+                  <div
+                    key={sem.id}
+                    style={{
+                      background: "#111827",
+                      padding: "25px",
+                      borderRadius: "12px",
+                      borderLeft: "4px solid #8b5cf6",
+                      flex: "1 1 320px",
+                      border: "1px solid #1e293b",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        margin: "0 0 8px 0",
+                        color: "#f8fafc",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {sem.titel}
+                    </h4>
+                    <p
+                      style={{
+                        margin: "0 0 20px 0",
+                        fontSize: "13px",
+                        color: "#94a3b8",
+                      }}
+                    >
+                      {new Date(sem.startzeit).toLocaleString("de-DE")} -{" "}
+                      {new Date(sem.endzeit).toLocaleTimeString("de-DE")} Uhr
+                    </p>
+
+                    {isAdmin && (
+                      <div
+                        style={{
+                          borderTop: "1px solid #1e293b",
+                          paddingTop: "15px",
+                          marginBottom: "15px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            marginBottom: "10px",
+                            color: "#f8fafc",
+                          }}
+                        >
+                          Mitarbeiter hinzufügen:
+                        </p>
+                        <div
+                          style={{
+                            maxHeight: "140px",
+                            overflowY: "auto",
+                            background: "#0b1120",
+                            padding: "10px",
+                            borderRadius: "8px",
+                            border: "1px solid #1e293b",
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "8px",
+                          }}
+                        >
+                          {mitarbeiter
+                            .filter(
+                              (m) =>
+                                !assigned.some((a) => a.mitarbeiter_id === m.id)
+                            )
+                            .map((m) => (
+                              <label
+                                key={m.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={(
+                                    selectedSeminarMembers[sem.id] || []
+                                  ).includes(m.id)}
+                                  onChange={(e) => {
+                                    const current =
+                                      selectedSeminarMembers[sem.id] || [];
+                                    setSelectedSeminarMembers({
+                                      ...selectedSeminarMembers,
+                                      [sem.id]: e.target.checked
+                                        ? [...current, m.id]
+                                        : current.filter((id) => id !== m.id),
+                                    });
+                                  }}
+                                  style={{ accentColor: "#8b5cf6" }}
+                                />{" "}
+                                {m.name}
+                              </label>
+                            ))}
+                        </div>
+                        <button
+                          onClick={() => seminarMultiZuweisen(sem)}
+                          style={{
+                            ...saveBtnStyle,
+                            width: "100%",
+                            marginTop: "10px",
+                            background:
+                              "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                          }}
+                        >
+                          Gewählte hinzufügen
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        background: "#0b1120",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: "1px solid #1e293b",
+                      }}
+                    >
+                      <strong style={{ color: "#e2e8f0" }}>Teilnehmer:</strong>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                        }}
+                      >
+                        {assigned.length > 0 ? (
+                          assigned.map((a) => {
+                            const mColor = getMitarbeiterColor(
+                              a.mitarbeiter?.name
+                            );
+                            return (
+                              <div
+                                key={a.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  background: "#1f2937",
+                                  padding: "4px 8px",
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    color: "#94a3b8",
+                                    fontSize: "12px",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "6px",
+                                      height: "6px",
+                                      borderRadius: "50%",
+                                      backgroundColor: mColor,
+                                    }}
+                                  ></div>
+                                  {a.mitarbeiter?.name}
+                                </span>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => schichtLoeschen(a.id)}
+                                    style={{
+                                      background: "none",
+                                      border: "none",
+                                      color: "#ef4444",
+                                      cursor: "pointer",
+                                      fontSize: "10px",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    X
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "#64748b",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            Niemand eingeteilt.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// --- KALENDER KOMPONENTE (BILDSCHIRM TIMELINE + DRUCK TABELLE) ---
 function StudioKalenderKachel({
   studio,
   isAusserHaus,
@@ -2791,6 +2798,7 @@ function StudioKalenderKachel({
         borderRadius: "16px",
         border: isAusserHaus ? "1px dashed #374151" : "1px solid #1e293b",
         marginBottom: "40px",
+        position: "relative",
       }}
     >
       <h2
@@ -2969,7 +2977,7 @@ function StudioKalenderKachel({
         className="print-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(200px, 1fr))",
+          gridTemplateColumns: "repeat(7, minmax(180px, 1fr))",
           gap: "12px",
           marginTop: "20px",
           overflowX: "auto",
