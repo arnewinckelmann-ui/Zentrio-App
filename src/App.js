@@ -7,6 +7,7 @@ const supabaseKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvZGNyZnVjYW1icmhramFoZ2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjgyMTEsImV4cCI6MjA4NzcwNDIxMX0.XuAhDtqN7mKPQnFnM9qyY226Lf9sJdTthRZLL2PucT4";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- DAS ZENTRIO LOGO (SVG) ---
 const ZentrioLogo = ({ size = 28 }) => (
   <svg
     width={size}
@@ -370,7 +371,11 @@ export default function App() {
   }
 
   async function godDeleteCompany(id) {
-    if (!window.confirm("Möchtest du diesen Mandanten unwiderruflich löschen?"))
+    if (
+      !window.confirm(
+        "Sicherheitsabfrage: Möchtest du diesen Mandanten unwiderruflich löschen?"
+      )
+    )
       return;
     await supabase.from("schichten").delete().eq("unternehmen_id", id);
     await supabase.from("seminare").delete().eq("unternehmen_id", id);
@@ -763,6 +768,8 @@ export default function App() {
               zIndex: 9999,
               fontWeight: "bold",
               fontSize: "14px",
+              animation:
+                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
             }}
           >
             {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
@@ -873,9 +880,10 @@ export default function App() {
         fontFamily: "'Inter', sans-serif",
         padding: "20px",
         margin: "0 auto",
-        maxWidth: "1400px",
+        maxWidth: "1600px",
       }}
     >
+      <style>{`body { background-color: #0b1120; margin: 0; } input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }`}</style>
       <header
         style={{
           paddingBottom: "20px",
@@ -1074,6 +1082,7 @@ export default function App() {
           </div>
         )}
 
+      {/* --- REITER: SYSTEM ADMIN --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div>
           <div
@@ -1189,7 +1198,13 @@ export default function App() {
                   border: "1px solid #1e293b",
                   padding: "25px",
                   borderRadius: "16px",
+                  transition: "transform 0.2s",
+                  cursor: "default",
                 }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-4px)")
+                }
+                onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
                 <h3
                   style={{
@@ -1247,6 +1262,46 @@ export default function App() {
                     {u.geschaeftsfuehrer || "-"}
                   </span>
                 </div>
+                <div
+                  style={{ display: "flex", gap: "15px", marginBottom: "20px" }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(14, 165, 233, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#0ea5e9",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(14, 165, 233, 0.2)",
+                    }}
+                  >
+                    Studios
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.studios?.length || 0}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      background: "rgba(99, 102, 241, 0.1)",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "#818cf8",
+                      flex: 1,
+                      textAlign: "center",
+                      border: "1px solid rgba(99, 102, 241, 0.2)",
+                    }}
+                  >
+                    Mitarbeiter
+                    <br />
+                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
+                      {u.mitarbeiter?.length || 0}
+                    </strong>
+                  </div>
+                </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     onClick={() => {
@@ -1277,6 +1332,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: MEIN UNTERNEHMEN --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div>
           <div
@@ -1377,6 +1433,11 @@ export default function App() {
                   border: "1px solid #1e293b",
                 }}
               >
+                <h4
+                  style={{ marginTop: 0, color: "#0ea5e9", fontSize: "16px" }}
+                >
+                  Mitarbeiter anlegen
+                </h4>
                 <form
                   onSubmit={mitarbeiterSpeichern}
                   style={{
@@ -1417,7 +1478,7 @@ export default function App() {
                       />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Urlaub</label>
+                      <label style={labelStyle}>Urlaub/Jahr</label>
                       <input
                         type="number"
                         value={neuerUrlaubsAnspruch}
@@ -1430,7 +1491,7 @@ export default function App() {
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Rolle</label>
+                    <label style={labelStyle}>System-Rolle</label>
                     <select
                       value={neueRolle}
                       onChange={(e) => setNeueRolle(e.target.value)}
@@ -1457,9 +1518,13 @@ export default function App() {
                       type="checkbox"
                       checked={neueFreigabe}
                       onChange={(e) => setNeueFreigabe(e.target.checked)}
-                      style={{ width: "16px", height: "16px" }}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#0ea5e9",
+                      }}
                     />{" "}
-                    Planungs-Rechte
+                    Planungs-Rechte erteilen
                   </label>
                   <button
                     type="submit"
@@ -1784,31 +1849,7 @@ export default function App() {
         </div>
       )}
 
-      {aktiverTab === "schule" && activeUnternehmenId && (
-        <div style={{ color: "#94a3b8", padding: "20px" }}>
-          <em>
-            Ausbildungs-Ansicht (Code für Übersichtlichkeit eingeklappt,
-            funktioniert weiterhin!)
-          </em>
-        </div>
-      )}
-      {aktiverTab === "urlaub" && activeUnternehmenId && (
-        <div style={{ color: "#94a3b8", padding: "20px" }}>
-          <em>
-            Urlaubs-Ansicht (Code für Übersichtlichkeit eingeklappt,
-            funktioniert weiterhin!)
-          </em>
-        </div>
-      )}
-      {aktiverTab === "seminare" && activeUnternehmenId && (
-        <div style={{ color: "#94a3b8", padding: "20px" }}>
-          <em>
-            Seminar-Ansicht (Code für Übersichtlichkeit eingeklappt,
-            funktioniert weiterhin!)
-          </em>
-        </div>
-      )}
-
+      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
@@ -1899,6 +1940,638 @@ export default function App() {
             currentUnternehmenId={activeUnternehmenId}
             showToast={showToast}
           />
+        </div>
+      )}
+
+      {/* --- REITER: SCHULE --- */}
+      {aktiverTab === "schule" && activeUnternehmenId && (
+        <div
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          {canEdit && (
+            <div
+              style={{
+                background: "#111827",
+                padding: "30px",
+                borderRadius: "16px",
+                flex: "0 0 340px",
+                border: "1px solid #1e293b",
+                borderTop: "3px solid #10b981",
+                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h3 style={{ marginTop: 0, color: "#10b981", fontSize: "18px" }}>
+                Neuer Blockunterricht
+              </h3>
+              <form
+                onSubmit={schuleSpeichern}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                  marginTop: "20px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Mitarbeiter</label>
+                  <select
+                    value={schuleMitarbeiter}
+                    onChange={(e) => setSchuleMitarbeiter(e.target.value)}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">-- Auswählen --</option>
+                    {mitarbeiter.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Start Datum</label>
+                    <input
+                      type="date"
+                      value={schuleStartDatum}
+                      onChange={(e) => setSchuleStartDatum(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>End Datum</label>
+                    <input
+                      type="date"
+                      value={schuleEndDatum}
+                      onChange={(e) => setSchuleEndDatum(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Startzeit</label>
+                    <input
+                      type="time"
+                      value={schuleStartZeit}
+                      onChange={(e) => setSchuleStartZeit(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Endzeit</label>
+                    <input
+                      type="time"
+                      value={schuleEndZeit}
+                      onChange={(e) => setSchuleEndZeit(e.target.value)}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  style={{
+                    ...saveBtnStyle,
+                    background: "linear-gradient(135deg, #10b981, #059669)",
+                  }}
+                >
+                  Block eintragen
+                </button>
+              </form>
+            </div>
+          )}
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Geplante Ausbildungen
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginTop: "20px",
+              }}
+            >
+              {schichten
+                .filter(
+                  (s) =>
+                    s.typ === "Schule/Uni" &&
+                    new Date(s.endzeit) >= new Date().setHours(0, 0, 0, 0)
+                )
+                .sort((a, b) => new Date(a.startzeit) - new Date(b.startzeit))
+                .map((s) => {
+                  const isMultiDay =
+                    new Date(s.startzeit).toDateString() !==
+                    new Date(s.endzeit).toDateString();
+                  const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        background: "#111827",
+                        padding: "18px 20px",
+                        borderLeft: "4px solid #10b981",
+                        borderRadius: "10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        border: "1px solid #1e293b",
+                      }}
+                    >
+                      <div>
+                        <strong
+                          style={{
+                            color: "#10b981",
+                            fontSize: "15px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
+                          {s.mitarbeiter?.name}
+                        </strong>
+                        <div style={{ marginTop: "4px" }}>
+                          {isMultiDay ? (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Vom{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>{" "}
+                              bis{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.endzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          ) : (
+                            <span
+                              style={{ color: "#94a3b8", fontSize: "13px" }}
+                            >
+                              Am{" "}
+                              <strong style={{ color: "#cbd5e1" }}>
+                                {new Date(s.startzeit).toLocaleDateString()}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {canEdit && (
+                        <button
+                          onClick={() => schichtLoeschen(s.id)}
+                          style={{ ...textBtnStyle, color: "#ef4444" }}
+                        >
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REITER: URLAUB --- */}
+      {aktiverTab === "urlaub" && activeUnternehmenId && (
+        <div
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              background: "#111827",
+              padding: "30px",
+              borderRadius: "16px",
+              flex: "0 0 340px",
+              border: "1px solid #1e293b",
+              borderTop: "3px solid #f59e0b",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: "#f59e0b", fontSize: "18px" }}>
+              Urlaubsantrag
+            </h3>
+            <form
+              onSubmit={urlaubBeantragen}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "18px",
+                marginTop: "20px",
+              }}
+            >
+              <div>
+                <label style={labelStyle}>Mitarbeiter</label>
+                <select
+                  value={urlaubMitarbeiter}
+                  onChange={(e) => setUrlaubMitarbeiter(e.target.value)}
+                  required
+                  style={inputStyle}
+                >
+                  <option value="">-- Wer beantragt? --</option>
+                  {mitarbeiter.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Vom (inkl.)</label>
+                <input
+                  type="date"
+                  value={urlaubStart}
+                  onChange={(e) => setUrlaubStart(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Bis (inkl.)</label>
+                <input
+                  type="date"
+                  value={urlaubEnde}
+                  onChange={(e) => setUrlaubEnde(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  ...saveBtnStyle,
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                }}
+              >
+                Beantragen
+              </button>
+            </form>
+          </div>
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Ausstehende Anträge
+            </h3>
+            <div style={{ marginTop: "20px" }}>
+              {schichten
+                .filter((s) => s.typ === "Urlaub" && s.status === "Beantragt")
+                .map((u) => {
+                  const mColor = getMitarbeiterColor(u.mitarbeiter?.name);
+                  return (
+                    <div
+                      key={u.id}
+                      style={{
+                        background: "#111827",
+                        padding: "25px",
+                        marginBottom: "15px",
+                        borderLeft: "4px solid #f59e0b",
+                        borderRadius: "12px",
+                        border: "1px solid #1e293b",
+                      }}
+                    >
+                      <div style={{ fontSize: "14px", color: "#e2e8f0" }}>
+                        <strong
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "16px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              backgroundColor: mColor,
+                            }}
+                          ></div>
+                          {u.mitarbeiter?.name}
+                        </strong>{" "}
+                        <br />
+                        beantragt Urlaub vom{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.startzeit).toLocaleDateString()}
+                        </strong>{" "}
+                        bis{" "}
+                        <strong style={{ color: "#fff" }}>
+                          {new Date(u.endzeit).toLocaleDateString()}
+                        </strong>
+                      </div>
+                      {isAdmin ? (
+                        <div
+                          style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            gap: "12px",
+                          }}
+                        >
+                          <button
+                            onClick={() => urlaubGenehmigen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #10b981, #059669)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Genehmigen
+                          </button>
+                          <button
+                            onClick={() => schichtLoeschen(u.id)}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #ef4444, #dc2626)",
+                              color: "#fff",
+                              padding: "10px 20px",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            Ablehnen
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: "15px",
+                            fontSize: "12px",
+                            color: "#94a3b8",
+                            background: "#0b1120",
+                            padding: "10px",
+                            borderRadius: "6px",
+                            display: "inline-block",
+                            border: "1px solid #1e293b",
+                          }}
+                        >
+                          Wartet auf Freigabe.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REITER: SEMINARE --- */}
+      {aktiverTab === "seminare" && activeUnternehmenId && (
+        <div
+          style={{
+            display: "flex",
+            gap: "40px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          {isAdmin && (
+            <div
+              style={{
+                background: "#111827",
+                padding: "30px",
+                borderRadius: "16px",
+                flex: "0 0 340px",
+                border: "1px solid #1e293b",
+                borderTop: "3px solid #8b5cf6",
+                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h3 style={{ marginTop: 0, color: "#8b5cf6", fontSize: "18px" }}>
+                Neues Seminar
+              </h3>
+              <form
+                onSubmit={seminarSpeichern}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                  marginTop: "20px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Titel / Thema</label>
+                  <input
+                    type="text"
+                    value={seminarTitel}
+                    onChange={(e) => setSeminarTitel(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Start</label>
+                  <input
+                    type="datetime-local"
+                    value={seminarStart}
+                    onChange={(e) => setSeminarStart(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ende</label>
+                  <input
+                    type="datetime-local"
+                    value={seminarEnde}
+                    onChange={(e) => setSeminarEnde(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  style={{
+                    ...saveBtnStyle,
+                    background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+                  }}
+                >
+                  Planen
+                </button>
+              </form>
+            </div>
+          )}
+          <div style={{ flex: "1 1 500px" }}>
+            <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
+              Geplante Fortbildungen
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "20px",
+                marginTop: "20px",
+              }}
+            >
+              {seminare.map((sem) => {
+                const assigned = schichten.filter(
+                  (s) =>
+                    s.typ === "Seminar" &&
+                    new Date(s.startzeit).getTime() ===
+                      new Date(sem.startzeit).getTime()
+                );
+                return (
+                  <div
+                    key={sem.id}
+                    style={{
+                      background: "#111827",
+                      padding: "25px",
+                      borderRadius: "12px",
+                      borderLeft: "4px solid #8b5cf6",
+                      flex: "1 1 320px",
+                      border: "1px solid #1e293b",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        margin: "0 0 8px 0",
+                        color: "#f8fafc",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {sem.titel}
+                    </h4>
+                    <p
+                      style={{
+                        margin: "0 0 20px 0",
+                        fontSize: "13px",
+                        color: "#94a3b8",
+                      }}
+                    >
+                      {new Date(sem.startzeit).toLocaleString("de-DE")} -{" "}
+                      {new Date(sem.endzeit).toLocaleTimeString("de-DE")} Uhr
+                    </p>
+                    {isAdmin && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          marginBottom: "20px",
+                        }}
+                      >
+                        <select
+                          id={`sem-${sem.id}`}
+                          style={{ ...inputStyle, padding: "10px", flex: 1 }}
+                        >
+                          <option value="">-- Teilnehmer zuweisen --</option>
+                          {mitarbeiter.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            const sel = document.getElementById(
+                              `sem-${sem.id}`
+                            );
+                            seminarZuweisen(sem, sel.value);
+                            sel.value = "";
+                          }}
+                          style={{
+                            ...saveBtnStyle,
+                            marginTop: 0,
+                            background:
+                              "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                            padding: "0 20px",
+                          }}
+                        >
+                          Zuweisen
+                        </button>
+                      </div>
+                    )}
+                    {assigned.length > 0 ? (
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          color: "#e2e8f0",
+                          background: "#0b1120",
+                          padding: "12px",
+                          borderRadius: "8px",
+                          border: "1px solid #1e293b",
+                        }}
+                      >
+                        <strong>Teilnehmer:</strong>
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                          }}
+                        >
+                          {assigned.map((a) => {
+                            const mColor = getMitarbeiterColor(
+                              a.mitarbeiter?.name
+                            );
+                            return (
+                              <span
+                                key={a.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: mColor,
+                                  }}
+                                ></div>
+                                {a.mitarbeiter?.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#64748b",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Noch keine Teilnehmer.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -2234,11 +2907,11 @@ function StudioKalenderKachel({
         </div>
       )}
 
-      {/* HIER WURDE DIE MINDESTBREITE DER SPALTEN AUF 180px ERHÖHT */}
+      {/* --- SPALTEN ERWEITERT AUF MINDESTENS 240px --- */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(180px, 1fr))",
+          gridTemplateColumns: "repeat(7, minmax(240px, 1fr))",
           gap: "12px",
           marginTop: "20px",
           overflowX: "auto",
@@ -2375,7 +3048,7 @@ function StudioKalenderKachel({
                                 durationMinutes * 0.8
                               )}px`,
                               background: theme.bg,
-                              padding: "6px 20px 6px 8px",
+                              padding: "8px 18px 8px 8px",
                               borderRadius: "6px",
                               borderLeft: `4px solid ${theme.border}`,
                               borderTop: `1px solid ${theme.borderSoft}`,
@@ -2385,7 +3058,6 @@ function StudioKalenderKachel({
                               minWidth: 0,
                             }}
                           >
-                            {/* HIER WURDE DIE SCHRIFT KLEINER GEMACHT */}
                             {s.typ !== "Arbeit" && (
                               <div
                                 style={{
@@ -2404,11 +3076,14 @@ function StudioKalenderKachel({
                                 {s.typ}
                               </div>
                             )}
+
+                            {/* --- UHRZEIT BLEIBT AB SOFORT IMMER IN EINER ZEILE --- */}
                             <div
                               style={{
                                 fontWeight: "bold",
                                 color: "#f8fafc",
-                                fontSize: "10px",
+                                fontSize: "11px",
+                                whiteSpace: "nowrap",
                               }}
                             >
                               {new Date(s.startzeit).toLocaleTimeString(
@@ -2422,7 +3097,7 @@ function StudioKalenderKachel({
                               })}
                             </div>
 
-                            {/* HIER WIRD DER VOLLE NAME ANGEZEIGT (wordWrap erlaubt Umbruch in Zeile 2) */}
+                            {/* --- NAME BRICHT SAUBER UM --- */}
                             <div
                               style={{
                                 display: "flex",
@@ -2431,8 +3106,8 @@ function StudioKalenderKachel({
                                 color: theme.text,
                                 fontWeight: "bold",
                                 marginTop: "4px",
-                                fontSize: "11px",
-                                lineHeight: "1.2",
+                                fontSize: "12px",
+                                lineHeight: "1.4",
                                 wordWrap: "break-word",
                               }}
                             >
@@ -2443,10 +3118,12 @@ function StudioKalenderKachel({
                                   borderRadius: "50%",
                                   backgroundColor: mColor,
                                   flexShrink: 0,
-                                  marginTop: "3px",
+                                  marginTop: "4px",
                                 }}
                               ></div>
-                              <span>{s.mitarbeiter?.name || "Alle"}</span>
+                              <span style={{ display: "block" }}>
+                                {s.mitarbeiter?.name || "Alle"}
+                              </span>
                             </div>
 
                             {canEdit && (
@@ -2462,8 +3139,8 @@ function StudioKalenderKachel({
                                   fontSize: "8px",
                                   color: "#ef4444",
                                   borderRadius: "50%",
-                                  width: "16px",
-                                  height: "16px",
+                                  width: "14px",
+                                  height: "14px",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -2533,7 +3210,6 @@ function StudioKalenderKachel({
   );
 }
 
-// --- STYLES ---
 const labelStyle = {
   display: "block",
   fontSize: "11px",
