@@ -79,7 +79,6 @@ const ZentrioLogo = ({ size = 28 }) => (
   </svg>
 );
 
-// --- MAGISCHER FARB-GENERATOR ---
 function getMitarbeiterColor(name) {
   if (!name) return "#94a3b8";
   const colors = [
@@ -97,11 +96,9 @@ function getMitarbeiterColor(name) {
     "#f43f5e",
   ];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
+  for (let i = 0; i < name.length; i++)
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
+  return colors[Math.abs(hash) % colors.length];
 }
 
 function getMontag(datum) {
@@ -127,18 +124,14 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- TOAST STATE ---
   const [toast, setToast] = useState({
     message: "",
     type: "success",
     visible: false,
   });
-
   function showToast(message, type = "success") {
     setToast({ message, type, visible: true });
-    setTimeout(() => {
-      setToast((prev) => ({ ...prev, visible: false }));
-    }, 3500);
+    setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3500);
   }
 
   const [userProfiles, setUserProfiles] = useState([]);
@@ -233,7 +226,6 @@ export default function App() {
   useEffect(() => {
     if (isGod && !activeUnternehmenId) setAktiverTab("system");
   }, [isGod, activeUnternehmenId]);
-
   useEffect(() => {
     if (activeUnternehmenId) ladeDaten();
     if (isGod && !activeUnternehmenId) ladeSystemDaten();
@@ -438,20 +430,16 @@ export default function App() {
     const ende = new Date(`${schuleEndDatum}T${schuleEndZeit}:00`);
     if (start >= ende)
       return showToast("Das Ende muss nach dem Start liegen.", "error");
-
-    const ueberschneidung = schichten.some(
-      (s) =>
-        s.mitarbeiter_id == schuleMitarbeiter &&
-        s.status !== "Beantragt" &&
-        start < new Date(s.endzeit) &&
-        ende > new Date(s.startzeit)
-    );
-    if (ueberschneidung)
-      return showToast(
-        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
-        "error"
-      );
-
+    if (
+      schichten.some(
+        (s) =>
+          s.mitarbeiter_id == schuleMitarbeiter &&
+          s.status !== "Beantragt" &&
+          start < new Date(s.endzeit) &&
+          ende > new Date(s.startzeit)
+      )
+    )
+      return showToast("Doppelbuchung!", "error");
     await supabase
       .from("schichten")
       .insert([
@@ -476,20 +464,16 @@ export default function App() {
     const ende = new Date(urlaubEnde + "T23:59:59");
     if (start > ende)
       return showToast("Das Ende muss nach dem Start liegen.", "error");
-
-    const ueberschneidung = schichten.some(
-      (s) =>
-        s.mitarbeiter_id == urlaubMitarbeiter &&
-        s.status !== "Beantragt" &&
-        start < new Date(s.endzeit) &&
-        ende > new Date(s.startzeit)
-    );
-    if (ueberschneidung)
-      return showToast(
-        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
-        "error"
-      );
-
+    if (
+      schichten.some(
+        (s) =>
+          s.mitarbeiter_id == urlaubMitarbeiter &&
+          s.status !== "Beantragt" &&
+          start < new Date(s.endzeit) &&
+          ende > new Date(s.startzeit)
+      )
+    )
+      return showToast("Doppelbuchung!", "error");
     await supabase
       .from("schichten")
       .insert([
@@ -540,19 +524,16 @@ export default function App() {
     if (!mId) return;
     const start = new Date(sem.startzeit);
     const ende = new Date(sem.endzeit);
-    const ueberschneidung = schichten.some(
-      (s) =>
-        s.mitarbeiter_id == mId &&
-        s.status !== "Beantragt" &&
-        start < new Date(s.endzeit) &&
-        ende > new Date(s.startzeit)
-    );
-    if (ueberschneidung)
-      return showToast(
-        "Doppelbuchung! Mitarbeiter ist da schon verplant.",
-        "error"
-      );
-
+    if (
+      schichten.some(
+        (s) =>
+          s.mitarbeiter_id == mId &&
+          s.status !== "Beantragt" &&
+          start < new Date(s.endzeit) &&
+          ende > new Date(s.startzeit)
+      )
+    )
+      return showToast("Doppelbuchung!", "error");
     await supabase
       .from("schichten")
       .insert([
@@ -615,7 +596,7 @@ export default function App() {
   }
 
   async function mitarbeiterLoeschen(id) {
-    if (!window.confirm("Diesen Mitarbeiter aus dem System entfernen?")) return;
+    if (!window.confirm("Mitarbeiter löschen?")) return;
     await supabase.from("mitarbeiter").delete().eq("id", id);
     ladeDaten();
     showToast("Mitarbeiter gelöscht.", "success");
@@ -632,7 +613,7 @@ export default function App() {
   }
 
   async function studioLoeschen(id) {
-    if (!window.confirm("Diesen Standort löschen?")) return;
+    if (!window.confirm("Standort löschen?")) return;
     await supabase.from("studios").delete().eq("id", id);
     ladeDaten();
     showToast("Studio gelöscht.", "success");
@@ -787,14 +768,8 @@ export default function App() {
               zIndex: 9999,
               fontWeight: "bold",
               fontSize: "14px",
-              animation:
-                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
             }}
           >
-            <style>{`@keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }`}</style>
             {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
           </div>
         )}
@@ -1105,7 +1080,7 @@ export default function App() {
           </div>
         )}
 
-      {/* --- REITER --- */}
+      {/* --- REITER: SYSTEM ADMIN --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div>
           <div
@@ -1225,10 +1200,6 @@ export default function App() {
                   transition: "transform 0.2s",
                   cursor: "default",
                 }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.transform = "translateY(-4px)")
-                }
-                onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
                 <h3
                   style={{
@@ -1286,46 +1257,6 @@ export default function App() {
                     {u.geschaeftsfuehrer || "-"}
                   </span>
                 </div>
-                <div
-                  style={{ display: "flex", gap: "15px", marginBottom: "20px" }}
-                >
-                  <div
-                    style={{
-                      background: "rgba(14, 165, 233, 0.1)",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "#0ea5e9",
-                      flex: 1,
-                      textAlign: "center",
-                      border: "1px solid rgba(14, 165, 233, 0.2)",
-                    }}
-                  >
-                    Studios
-                    <br />
-                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
-                      {u.studios?.length || 0}
-                    </strong>
-                  </div>
-                  <div
-                    style={{
-                      background: "rgba(99, 102, 241, 0.1)",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      color: "#818cf8",
-                      flex: 1,
-                      textAlign: "center",
-                      border: "1px solid rgba(99, 102, 241, 0.2)",
-                    }}
-                  >
-                    Mitarbeiter
-                    <br />
-                    <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
-                      {u.mitarbeiter?.length || 0}
-                    </strong>
-                  </div>
-                </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     onClick={() => {
@@ -1357,6 +1288,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: MEIN UNTERNEHMEN --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div>
           <div
@@ -1407,7 +1339,6 @@ export default function App() {
                     display: "flex",
                     gap: "15px",
                     alignItems: "center",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                   }}
                 >
                   <strong style={{ fontSize: "15px", fontWeight: "600" }}>
@@ -1437,7 +1368,6 @@ export default function App() {
               padding: "30px",
               borderRadius: "16px",
               border: "1px solid #1e293b",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
             }}
           >
             <h3
@@ -1599,7 +1529,6 @@ export default function App() {
                       const diffCol =
                         diff > 0 ? "#10b981" : diff < 0 ? "#ef4444" : "#94a3b8";
                       const magicColor = getMitarbeiterColor(m.name);
-
                       return editingMitarbeiterId === m.id ? (
                         <tr
                           key={m.id}
@@ -1706,7 +1635,6 @@ export default function App() {
                                 borderRadius: "6px",
                                 fontWeight: "bold",
                                 cursor: "pointer",
-                                boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
                               }}
                             >
                               Speichern
@@ -1716,16 +1644,7 @@ export default function App() {
                       ) : (
                         <tr
                           key={m.id}
-                          style={{
-                            borderBottom: "1px solid #1e293b",
-                            transition: "0.2s",
-                          }}
-                          onMouseOver={(e) =>
-                            (e.currentTarget.style.background = "#111827")
-                          }
-                          onMouseOut={(e) =>
-                            (e.currentTarget.style.background = "transparent")
-                          }
+                          style={{ borderBottom: "1px solid #1e293b" }}
                         >
                           <td style={tdStyle}>
                             <strong
@@ -1888,6 +1807,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
@@ -1981,6 +1901,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: SCHULE --- */}
       {aktiverTab === "schule" && activeUnternehmenId && (
         <div
           style={{
@@ -2079,8 +2000,6 @@ export default function App() {
                   style={{
                     ...saveBtnStyle,
                     background: "linear-gradient(135deg, #10b981, #059669)",
-                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
-                    marginTop: "10px",
                   }}
                 >
                   Block eintragen
@@ -2124,7 +2043,6 @@ export default function App() {
                         justifyContent: "space-between",
                         alignItems: "center",
                         border: "1px solid #1e293b",
-                        boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
                       }}
                     >
                       <div>
@@ -2189,6 +2107,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- REITER: URLAUB --- */}
       {aktiverTab === "urlaub" && activeUnternehmenId && (
         <div
           style={{
@@ -2262,8 +2181,6 @@ export default function App() {
                 style={{
                   ...saveBtnStyle,
                   background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                  boxShadow: "0 4px 14px rgba(245, 158, 11, 0.3)",
-                  marginTop: "10px",
                 }}
               >
                 Beantragen
@@ -2289,7 +2206,6 @@ export default function App() {
                         borderLeft: "4px solid #f59e0b",
                         borderRadius: "12px",
                         border: "1px solid #1e293b",
-                        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
                       }}
                     >
                       <div style={{ fontSize: "14px", color: "#e2e8f0" }}>
@@ -2341,7 +2257,6 @@ export default function App() {
                               borderRadius: "8px",
                               cursor: "pointer",
                               fontWeight: "bold",
-                              boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
                             }}
                           >
                             Genehmigen
@@ -2357,7 +2272,6 @@ export default function App() {
                               borderRadius: "8px",
                               cursor: "pointer",
                               fontWeight: "bold",
-                              boxShadow: "0 2px 8px rgba(239,68,68,0.3)",
                             }}
                           >
                             Ablehnen
@@ -2382,18 +2296,12 @@ export default function App() {
                     </div>
                   );
                 })}
-              {schichten.filter(
-                (s) => s.typ === "Urlaub" && s.status === "Beantragt"
-              ).length === 0 && (
-                <p style={{ color: "#64748b", fontSize: "14px" }}>
-                  Keine offenen Urlaubsanträge.
-                </p>
-              )}
             </div>
           </div>
         </div>
       )}
 
+      {/* --- REITER: SEMINARE --- */}
       {aktiverTab === "seminare" && activeUnternehmenId && (
         <div
           style={{
@@ -2462,8 +2370,6 @@ export default function App() {
                   style={{
                     ...saveBtnStyle,
                     background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
-                    boxShadow: "0 4px 14px rgba(139, 92, 246, 0.3)",
-                    marginTop: "10px",
                   }}
                 >
                   Planen
@@ -2500,7 +2406,6 @@ export default function App() {
                       borderLeft: "4px solid #8b5cf6",
                       flex: "1 1 320px",
                       border: "1px solid #1e293b",
-                      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
                     }}
                   >
                     <h4
@@ -2555,7 +2460,6 @@ export default function App() {
                             background:
                               "linear-gradient(135deg, #8b5cf6, #7c3aed)",
                             padding: "0 20px",
-                            boxShadow: "0 2px 8px rgba(139,92,246,0.3)",
                           }}
                         >
                           Zuweisen
@@ -2624,11 +2528,6 @@ export default function App() {
                   </div>
                 );
               })}
-              {seminare.length === 0 && (
-                <p style={{ color: "#64748b", fontSize: "14px" }}>
-                  Keine Seminare geplant.
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -2649,9 +2548,6 @@ export default function App() {
             zIndex: 9999,
             fontWeight: "bold",
             fontSize: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
           }}
         >
           {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
@@ -2661,7 +2557,7 @@ export default function App() {
   );
 }
 
-// --- KALENDER KOMPONENTE MIT SICHERER TIMELINE ---
+// --- KALENDER KOMPONENTE (DIE MAGISCHE TIMELINE) ---
 function StudioKalenderKachel({
   studio,
   isAusserHaus,
@@ -2976,7 +2872,6 @@ function StudioKalenderKachel({
                     borderRadius: "8px",
                     cursor: "pointer",
                     fontWeight: "bold",
-                    boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)",
                   }}
                 >
                   Speichern
@@ -2987,13 +2882,15 @@ function StudioKalenderKachel({
         </div>
       )}
 
+      {/* NEU: gridTemplateColumns bekommt eine minmax-Breite, damit es nicht zu eng wird! */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: "repeat(7, minmax(170px, 1fr))",
           gap: "12px",
           marginTop: "20px",
           overflowX: "auto",
+          paddingBottom: "10px",
         }}
       >
         {wochentage.map((tag, index) => {
@@ -3104,12 +3001,20 @@ function StudioKalenderKachel({
                       {group.map((s) => {
                         const mColor = getMitarbeiterColor(s.mitarbeiter?.name);
                         const theme = getThemeColors(s.typ, mColor);
-                        const shiftStart = new Date(s.startzeit).getTime() || 0;
-                        const shiftEnd = new Date(s.endzeit).getTime() || 0;
                         const offsetMinutes =
-                          Math.max(0, (shiftStart - groupStart) / 60000) || 0;
+                          Math.max(
+                            0,
+                            ((new Date(s.startzeit).getTime() || 0) -
+                              groupStart) /
+                              60000
+                          ) || 0;
                         const durationMinutes =
-                          Math.max(0, (shiftEnd - shiftStart) / 60000) || 0;
+                          Math.max(
+                            0,
+                            ((new Date(s.endzeit).getTime() || 0) -
+                              (new Date(s.startzeit).getTime() || 0)) /
+                              60000
+                          ) || 0;
 
                         return (
                           <div
@@ -3122,7 +3027,7 @@ function StudioKalenderKachel({
                                 durationMinutes * 0.8
                               )}px`,
                               background: theme.bg,
-                              padding: "8px",
+                              padding: "8px 24px 8px 8px", // <-- NEU: Rechts extra viel Platz für das "X"
                               borderRadius: "8px",
                               borderLeft: `4px solid ${theme.border}`,
                               borderTop: `1px solid ${theme.borderSoft}`,
@@ -3130,7 +3035,7 @@ function StudioKalenderKachel({
                               borderBottom: `1px solid ${theme.borderSoft}`,
                               position: "relative",
                               minWidth: 0,
-                              wordWrap: "break-word",
+                              wordBreak: "break-word", // <-- NEU: Bricht lange Namen sauber um
                             }}
                           >
                             {s.typ !== "Arbeit" && (
@@ -3168,16 +3073,19 @@ function StudioKalenderKachel({
                                 minute: "2-digit",
                               })}
                             </div>
+
+                            {/* --- NEU: Sauberer Umbruch für lange Namen --- */}
                             <div
                               style={{
                                 display: "flex",
-                                alignItems: "center",
+                                alignItems: "flex-start",
                                 gap: "6px",
                                 color: theme.text,
                                 fontWeight: "bold",
-                                marginTop: "4px",
+                                marginTop: "6px",
                                 fontSize: "12px",
                                 lineHeight: "1.3",
+                                whiteSpace: "normal",
                               }}
                             >
                               <div
@@ -3187,31 +3095,40 @@ function StudioKalenderKachel({
                                   borderRadius: "50%",
                                   backgroundColor: mColor,
                                   flexShrink: 0,
+                                  marginTop: "4px",
                                 }}
                               ></div>
-                              {s.mitarbeiter?.name || "Alle"}
+                              <span>{s.mitarbeiter?.name || "Alle"}</span>
                             </div>
+
                             {canEdit && (
                               <button
                                 onClick={() => schichtLoeschen(s.id)}
                                 style={{
                                   position: "absolute",
-                                  top: "5px",
-                                  right: "5px",
-                                  background: "none",
+                                  top: "4px",
+                                  right: "4px",
+                                  background: "rgba(0,0,0,0.3)",
                                   border: "none",
                                   cursor: "pointer",
-                                  fontSize: "10px",
+                                  fontSize: "9px",
                                   color: "#ef4444",
-                                  opacity: 0.6,
+                                  borderRadius: "50%",
+                                  width: "18px",
+                                  height: "18px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   transition: "0.2s",
                                   fontWeight: "bold",
                                 }}
                                 onMouseOver={(e) =>
-                                  (e.target.style.opacity = 1)
+                                  (e.target.style.background =
+                                    "rgba(239,68,68,0.2)")
                                 }
                                 onMouseOut={(e) =>
-                                  (e.target.style.opacity = 0.6)
+                                  (e.target.style.background =
+                                    "rgba(0,0,0,0.3)")
                                 }
                               >
                                 X
@@ -3268,7 +3185,7 @@ function StudioKalenderKachel({
   );
 }
 
-// --- GLOBALE ZENTRIO STYLES ---
+// --- STYLES ---
 const labelStyle = {
   display: "block",
   fontSize: "11px",
@@ -3288,7 +3205,7 @@ const inputStyle = {
   boxSizing: "border-box",
   fontSize: "14px",
   outline: "none",
-  transition: "border 0.2s, box-shadow 0.2s",
+  transition: "border 0.2s",
 };
 const btnStyle = {
   cursor: "pointer",
