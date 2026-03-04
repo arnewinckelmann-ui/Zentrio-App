@@ -209,7 +209,6 @@ export default function App() {
   useEffect(() => {
     const iconUrl =
       "data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='24' height='24' fill='%23111827'/%3E%3Ccircle cx='12' cy='6' r='3.5' fill='%230ea5e9'/%3E%3Ccircle cx='6' cy='18' r='3.5' fill='%233b82f6'/%3E%3Ccircle cx='18' cy='18' r='3.5' fill='%236366f1'/%3E%3Cpath d='M10.5 9.5L6.5 14.5' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M13.5 9.5L17.5 14.5' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M8 18H16' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E";
-
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
       link = document.createElement("link");
@@ -217,7 +216,6 @@ export default function App() {
       document.head.appendChild(link);
     }
     link.href = iconUrl;
-
     let appleLink = document.querySelector("link[rel='apple-touch-icon']");
     if (!appleLink) {
       appleLink = document.createElement("link");
@@ -225,7 +223,6 @@ export default function App() {
       document.head.appendChild(appleLink);
     }
     appleLink.href = iconUrl;
-
     document.title = "ZENTRIO";
   }, []);
 
@@ -644,6 +641,7 @@ export default function App() {
           minHeight: "100vh",
           backgroundColor: "#0b1120",
           fontFamily: "'Inter', sans-serif",
+          padding: "20px",
         }}
       >
         <div
@@ -764,6 +762,8 @@ export default function App() {
               zIndex: 9999,
               fontWeight: "bold",
               fontSize: "14px",
+              animation:
+                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
             }}
           >
             {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
@@ -783,6 +783,7 @@ export default function App() {
           minHeight: "100vh",
           backgroundColor: "#0b1120",
           fontFamily: "'Inter', sans-serif",
+          padding: "20px",
         }}
       >
         <div
@@ -791,7 +792,8 @@ export default function App() {
             padding: "40px",
             borderRadius: "16px",
             border: "1px solid #1e293b",
-            width: "450px",
+            width: "100%",
+            maxWidth: "450px",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
           }}
         >
@@ -866,44 +868,62 @@ export default function App() {
 
   return (
     <div
-      className="App"
+      className="App app-container"
       style={{
         backgroundColor: "#0b1120",
         minHeight: "100vh",
         color: "#f8fafc",
         fontFamily: "'Inter', sans-serif",
-        padding: "20px",
         margin: "0 auto",
         maxWidth: "1600px",
+        padding: "20px",
       }}
     >
+      {/* --- MOBILE & DRUCK CSS EINGEBAUT --- */}
       <style>{`
-        body { background-color: #0b1120; margin: 0; } 
+        body { background-color: #0b1120; margin: 0; -webkit-tap-highlight-color: transparent; } 
         input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
-        
+        @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* MAGISCHER HANDY-MODUS */
+        @media (max-width: 768px) {
+          .app-container { padding: 12px !important; }
+          .app-header { flex-direction: column !important; align-items: stretch !important; gap: 15px !important; margin-bottom: 25px !important; }
+          .header-logo-section { justify-content: center !important; flex-direction: column !important; text-align: center !important; margin-bottom: 5px !important; }
+          .header-logo-section svg { margin: 0 0 8px 0 !important; }
+          .header-nav-section { justify-content: flex-start !important; width: 100% !important; overflow-x: auto !important; padding-bottom: 10px !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
+          .header-nav-section::-webkit-scrollbar { display: none; }
+          .week-nav { flex-direction: column !important; gap: 15px !important; padding: 20px !important; text-align: center !important; }
+          .studio-tabs { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 10px !important; -webkit-overflow-scrolling: touch; justify-content: flex-start !important; }
+          .studio-tabs::-webkit-scrollbar { display: none; }
+          .flex-wrap-container { flex-direction: column !important; gap: 20px !important; }
+          .form-panel { flex: 1 1 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; }
+          .grid-auto-fit { grid-template-columns: 1fr !important; }
+        }
+
+        /* ECHTE DRUCK-TABELLE */
         @media print {
-          @page { size: landscape; margin: 10mm; }
-          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+          @page { size: landscape; margin: 8mm; }
+          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
           .no-print { display: none !important; }
           .print-header-box { display: flex !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; justify-content: flex-start !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; }
           .print-header-box h2 { font-size: 16px !important; color: #000 !important; margin: 0 !important; font-weight: bold !important; }
           .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; page-break-inside: avoid !important; }
-          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
-          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
+          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; margin-top: 10px !important; }
+          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; width: 100% !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
           .print-day { background: #fff !important; border: none !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; min-height: 120px !important; box-shadow: none !important; display: block !important; }
-          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 6px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; }
-          .print-day-header span { color: #475569 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
-          .print-shift-container { padding: 6px !important; display: block !important; }
-          .print-shift-row { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-          .print-shift { display: block !important; margin: 0 0 6px 0 !important; min-height: auto !important; padding: 6px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
+          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; line-height: 1.2 !important; }
+          .print-day-header span { color: #333 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
+          .print-shift-container { padding: 4px !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
+          .print-shift { display: block !important; margin: 0 !important; min-height: auto !important; padding: 4px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
           .print-shift-time { font-size: 10px !important; color: #333 !important; white-space: nowrap !important; font-weight: normal !important; display: block !important; margin-bottom: 2px !important; }
-          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; }
+          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; margin-top: 2px !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
 
       <header
-        className="no-print"
+        className="no-print app-header"
         style={{
           paddingBottom: "20px",
           borderBottom: "1px solid #1e293b",
@@ -915,7 +935,10 @@ export default function App() {
           marginBottom: "35px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div
+          className="header-logo-section"
+          style={{ display: "flex", alignItems: "center" }}
+        >
           <ZentrioLogo />
           <div>
             <h1
@@ -951,6 +974,7 @@ export default function App() {
           </div>
         </div>
         <div
+          className="header-nav-section"
           style={{
             display: "flex",
             gap: "10px",
@@ -1033,13 +1057,14 @@ export default function App() {
           <button
             onClick={handleLogout}
             style={{
-              marginLeft: "15px",
+              marginLeft: "auto",
               color: "#ef4444",
               background: "none",
               border: "none",
               cursor: "pointer",
               fontWeight: "bold",
               fontSize: "13px",
+              padding: "10px 0",
             }}
           >
             Abmelden
@@ -1050,7 +1075,7 @@ export default function App() {
       {["dienstplan", "mein_unternehmen"].includes(aktiverTab) &&
         activeUnternehmenId && (
           <div
-            className="print-header-box"
+            className="print-header-box week-nav"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -1104,10 +1129,10 @@ export default function App() {
           </div>
         )}
 
-      {/* --- REITER: SYSTEM ADMIN (VOLLSTÄNDIG) --- */}
       {aktiverTab === "system" && isGod && !activeUnternehmenId && (
         <div className="no-print">
           <div
+            className="form-panel"
             style={{
               background: "linear-gradient(145deg, #111827, #0b1120)",
               padding: "30px",
@@ -1205,6 +1230,7 @@ export default function App() {
             Kunden Workspaces
           </h2>
           <div
+            className="grid-auto-fit"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
@@ -1221,10 +1247,6 @@ export default function App() {
                   borderRadius: "16px",
                   transition: "transform 0.2s",
                 }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.transform = "translateY(-4px)")
-                }
-                onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
                 <h3 style={{ margin: "0 0 15px 0", color: "#0ea5e9" }}>
                   {u.name}
@@ -1309,7 +1331,7 @@ export default function App() {
                       border: "1px solid rgba(99, 102, 241, 0.2)",
                     }}
                   >
-                    Mitarbeiter
+                    Personal
                     <br />
                     <strong style={{ color: "#f8fafc", fontSize: "16px" }}>
                       {u.mitarbeiter?.length || 0}
@@ -1347,10 +1369,10 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: MEIN UNTERNEHMEN (VOLLSTÄNDIG) --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div className="no-print">
           <div
+            className="form-panel"
             style={{
               background: "#111827",
               padding: "30px",
@@ -1372,14 +1394,19 @@ export default function App() {
             </h3>
             <form
               onSubmit={studioSpeichern}
-              style={{ display: "flex", gap: "15px", marginBottom: "25px" }}
+              style={{
+                display: "flex",
+                gap: "15px",
+                marginBottom: "25px",
+                flexWrap: "wrap",
+              }}
             >
               <input
                 placeholder="Neues Studio..."
                 value={neuesStudioName}
                 onChange={(e) => setNeuesStudioName(e.target.value)}
                 required
-                style={{ ...inputStyle, maxWidth: "350px" }}
+                style={{ ...inputStyle, flex: 1, minWidth: "200px" }}
               />
               <button type="submit" style={saveBtnStyle}>
                 Hinzufügen
@@ -1438,8 +1465,12 @@ export default function App() {
             >
               Personalverwaltung
             </h3>
-            <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
+            <div
+              className="flex-wrap-container"
+              style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}
+            >
               <div
+                className="form-panel"
                 style={{
                   flex: "0 0 320px",
                   background: "#0b1120",
@@ -1533,11 +1564,7 @@ export default function App() {
                       type="checkbox"
                       checked={neueFreigabe}
                       onChange={(e) => setNeueFreigabe(e.target.checked)}
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        accentColor: "#0ea5e9",
-                      }}
+                      style={{ width: "16px", height: "16px" }}
                     />{" "}
                     Planungs-Rechte erteilen
                   </label>
@@ -1549,7 +1576,10 @@ export default function App() {
                   </button>
                 </form>
               </div>
-              <div style={{ flex: "1 1 600px", overflowX: "auto" }}>
+              <div
+                className="form-panel"
+                style={{ flex: "1 1 600px", overflowX: "auto" }}
+              >
                 <table
                   style={{
                     width: "100%",
@@ -1558,6 +1588,7 @@ export default function App() {
                     background: "#0b1120",
                     borderRadius: "12px",
                     border: "1px solid #1e293b",
+                    minWidth: "500px",
                   }}
                 >
                   <thead
@@ -1873,11 +1904,10 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: DIENSTPLAN --- */}
       {aktiverTab === "dienstplan" && activeUnternehmenId && (
         <div>
           <div
-            className="no-print"
+            className="no-print studio-tabs"
             style={{
               display: "flex",
               gap: "12px",
@@ -1898,6 +1928,7 @@ export default function App() {
                 color: aktivesStudioView === "all" ? "#fff" : "#94a3b8",
                 border:
                   aktivesStudioView === "all" ? "none" : "1px solid #1e293b",
+                flexShrink: 0,
               }}
             >
               Gesamt-Ansicht
@@ -1918,6 +1949,7 @@ export default function App() {
                     aktivesStudioView === s.id.toString()
                       ? "none"
                       : "1px solid #1e293b",
+                  flexShrink: 0,
                 }}
               >
                 {s.name}
@@ -1930,7 +1962,7 @@ export default function App() {
                 marginLeft: "auto",
                 background: "linear-gradient(135deg, #10b981, #059669)",
                 border: "none",
-                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
+                flexShrink: 0,
               }}
             >
               🖨️ PDF / Drucken
@@ -1971,10 +2003,9 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: SCHULE --- */}
       {aktiverTab === "schule" && activeUnternehmenId && (
         <div
-          className="no-print"
+          className="no-print flex-wrap-container"
           style={{
             display: "flex",
             gap: "40px",
@@ -1984,6 +2015,7 @@ export default function App() {
         >
           {canEdit && (
             <div
+              className="form-panel"
               style={{
                 background: "#111827",
                 padding: "30px",
@@ -2077,7 +2109,7 @@ export default function App() {
               </form>
             </div>
           )}
-          <div style={{ flex: "1 1 500px" }}>
+          <div className="form-panel" style={{ flex: "1 1 500px" }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
               Geplante Ausbildungen
             </h3>
@@ -2177,10 +2209,9 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: URLAUB --- */}
       {aktiverTab === "urlaub" && activeUnternehmenId && (
         <div
-          className="no-print"
+          className="no-print flex-wrap-container"
           style={{
             display: "flex",
             gap: "40px",
@@ -2189,6 +2220,7 @@ export default function App() {
           }}
         >
           <div
+            className="form-panel"
             style={{
               background: "#111827",
               padding: "30px",
@@ -2257,7 +2289,7 @@ export default function App() {
               </button>
             </form>
           </div>
-          <div style={{ flex: "1 1 500px" }}>
+          <div className="form-panel" style={{ flex: "1 1 500px" }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
               Ausstehende Anträge
             </h3>
@@ -2371,10 +2403,9 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: SEMINARE (MIT NEUEM MULTI-SELECT) --- */}
       {aktiverTab === "seminare" && activeUnternehmenId && (
         <div
-          className="no-print"
+          className="no-print flex-wrap-container"
           style={{
             display: "flex",
             gap: "40px",
@@ -2384,6 +2415,7 @@ export default function App() {
         >
           {isAdmin && (
             <div
+              className="form-panel"
               style={{
                 background: "#111827",
                 padding: "30px",
@@ -2447,9 +2479,9 @@ export default function App() {
               </form>
             </div>
           )}
-          <div style={{ flex: "1 1 500px" }}>
+          <div className="form-panel" style={{ flex: "1 1 500px" }}>
             <h3 style={{ marginTop: 0, color: "#f8fafc", fontSize: "18px" }}>
-              Geplante Fortbildungen
+              Geplante Seminare
             </h3>
             <div
               style={{
@@ -2471,27 +2503,21 @@ export default function App() {
                     key={sem.id}
                     style={{
                       background: "#111827",
-                      padding: "25px",
+                      padding: "20px",
                       borderRadius: "12px",
                       borderLeft: "4px solid #8b5cf6",
-                      flex: "1 1 320px",
+                      flex: "1 1 350px",
                       border: "1px solid #1e293b",
                     }}
                   >
-                    <h4
-                      style={{
-                        margin: "0 0 8px 0",
-                        color: "#f8fafc",
-                        fontSize: "16px",
-                      }}
-                    >
+                    <h4 style={{ margin: "0 0 8px 0", color: "#f8fafc" }}>
                       {sem.titel}
                     </h4>
                     <p
                       style={{
-                        margin: "0 0 20px 0",
-                        fontSize: "13px",
+                        fontSize: "12px",
                         color: "#94a3b8",
+                        margin: "0 0 15px 0",
                       }}
                     >
                       {new Date(sem.startzeit).toLocaleString("de-DE")} -{" "}
@@ -2577,7 +2603,7 @@ export default function App() {
                               "linear-gradient(135deg, #8b5cf6, #7c3aed)",
                           }}
                         >
-                          Alle Gewählten zuweisen
+                          Gewählte hinzufügen
                         </button>
                       </div>
                     )}
@@ -2646,6 +2672,7 @@ export default function App() {
                                       cursor: "pointer",
                                       fontSize: "10px",
                                       fontWeight: "bold",
+                                      padding: "4px",
                                     }}
                                   >
                                     X
@@ -2672,6 +2699,29 @@ export default function App() {
               })}
             </div>
           </div>
+        </div>
+      )}
+      {toast.visible && (
+        <div
+          className="no-print"
+          style={{
+            position: "fixed",
+            bottom: "40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: toast.type === "error" ? "#ef4444" : "#10b981",
+            color: "#fff",
+            padding: "14px 24px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            fontWeight: "bold",
+            fontSize: "14px",
+            animation:
+              "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+          }}
+        >
+          {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
         </div>
       )}
     </div>
@@ -2804,7 +2854,7 @@ function StudioKalenderKachel({
 
   return (
     <div
-      className="print-bg-white"
+      className="print-bg-white mobile-full-width"
       style={{
         background: "#111827",
         padding: "25px",
@@ -2842,9 +2892,11 @@ function StudioKalenderKachel({
             justifyContent: "center",
             alignItems: "center",
             backdropFilter: "blur(8px)",
+            padding: "20px",
           }}
         >
           <div
+            className="form-panel"
             style={{
               background: "#111827",
               padding: "35px",
