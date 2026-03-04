@@ -205,6 +205,30 @@ export default function App() {
     setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3500);
   }
 
+  // --- MAGISCHER APP-ICON GENERATOR ---
+  useEffect(() => {
+    const iconUrl =
+      "data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='24' height='24' fill='%23111827'/%3E%3Ccircle cx='12' cy='6' r='3.5' fill='%230ea5e9'/%3E%3Ccircle cx='6' cy='18' r='3.5' fill='%233b82f6'/%3E%3Ccircle cx='18' cy='18' r='3.5' fill='%236366f1'/%3E%3Cpath d='M10.5 9.5L6.5 14.5' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M13.5 9.5L17.5 14.5' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M8 18H16' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E";
+
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = iconUrl;
+
+    let appleLink = document.querySelector("link[rel='apple-touch-icon']");
+    if (!appleLink) {
+      appleLink = document.createElement("link");
+      appleLink.rel = "apple-touch-icon";
+      document.head.appendChild(appleLink);
+    }
+    appleLink.href = iconUrl;
+
+    document.title = "ZENTRIO";
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -490,11 +514,9 @@ export default function App() {
   async function seminarMultiZuweisen(sem) {
     const ids = selectedSeminarMembers[sem.id] || [];
     if (ids.length === 0) return showToast("Niemand gewählt!", "error");
-
     setIsLoading(true);
     const start = new Date(sem.startzeit);
     const ende = new Date(sem.endzeit);
-
     const ueberschneidung = schichten.some(
       (s) =>
         ids.includes(s.mitarbeiter_id) &&
@@ -509,7 +531,6 @@ export default function App() {
         "error"
       );
     }
-
     const newShifts = ids.map((id) => ({
       mitarbeiter_id: id,
       startzeit: sem.startzeit,
@@ -518,7 +539,6 @@ export default function App() {
       status: "Genehmigt",
       unternehmen_id: activeUnternehmenId,
     }));
-
     await supabase.from("schichten").insert(newShifts);
     setSelectedSeminarMembers((prev) => ({ ...prev, [sem.id]: [] }));
     ladeDaten();
@@ -744,8 +764,6 @@ export default function App() {
               zIndex: 9999,
               fontWeight: "bold",
               fontSize: "14px",
-              animation:
-                "slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
             }}
           >
             {toast.type === "success" ? "✅" : "⚠️"} {toast.message}
@@ -859,28 +877,27 @@ export default function App() {
         maxWidth: "1600px",
       }}
     >
-      {/* --- DRUCK-CSS --- */}
       <style>{`
         body { background-color: #0b1120; margin: 0; } 
         input[type="time"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(180deg) saturate(200%); cursor: pointer; } 
-        @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-
+        
         @media print {
-          @page { size: landscape; margin: 8mm; }
-          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
+          @page { size: landscape; margin: 10mm; }
+          body, .App { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
           .print-header-box { display: flex !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; margin-bottom: 10px !important; justify-content: flex-start !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; }
           .print-header-box h2 { font-size: 16px !important; color: #000 !important; margin: 0 !important; font-weight: bold !important; }
           .print-bg-white { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; page-break-inside: avoid !important; }
-          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; margin-top: 10px !important; }
-          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; width: 100% !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
+          h2.print-text-dark { color: #000 !important; font-size: 18px !important; border-bottom: 2px solid #333 !important; padding-bottom: 5px !important; margin-bottom: 10px !important; }
+          .print-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 0 !important; border-top: 1px solid #000 !important; border-left: 1px solid #000 !important; margin-top: 0 !important; overflow: visible !important; padding-bottom: 0 !important; }
           .print-day { background: #fff !important; border: none !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; min-height: 120px !important; box-shadow: none !important; display: block !important; }
-          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 4px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; }
-          .print-day-header span { color: #333 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
-          .print-shift-container { padding: 4px !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
-          .print-shift { display: block !important; margin: 0 !important; min-height: auto !important; padding: 4px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
+          .print-day-header { background: #e2e8f0 !important; color: #000 !important; border-bottom: 1px solid #000 !important; padding: 6px !important; font-size: 12px !important; text-align: center !important; font-weight: bold !important; border-radius: 0 !important; }
+          .print-day-header span { color: #475569 !important; font-size: 10px !important; font-weight: normal !important; display: block !important; margin-top: 2px !important; }
+          .print-shift-container { padding: 6px !important; display: block !important; }
+          .print-shift-row { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          .print-shift { display: block !important; margin: 0 0 6px 0 !important; min-height: auto !important; padding: 6px !important; border: 1px solid #cbd5e1 !important; border-left-width: 4px !important; border-radius: 4px !important; background: #f8fafc !important; page-break-inside: avoid !important; width: 100% !important; box-sizing: border-box !important; }
           .print-shift-time { font-size: 10px !important; color: #333 !important; white-space: nowrap !important; font-weight: normal !important; display: block !important; margin-bottom: 2px !important; }
-          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; margin-top: 2px !important; }
+          .print-shift-name { font-size: 11px !important; color: #000 !important; font-weight: bold !important; display: flex !important; align-items: center !important; gap: 4px !important; word-wrap: break-word !important; white-space: normal !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
@@ -1007,7 +1024,7 @@ export default function App() {
                 ...btnStyle,
                 background: "transparent",
                 color: "#0ea5e9",
-                borderColor: "#0ea5e9",
+                border: "1px solid #0ea5e9",
               }}
             >
               Wechseln
@@ -1044,6 +1061,7 @@ export default function App() {
               padding: "15px 25px",
               borderRadius: "12px",
               border: "1px solid #1e293b",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
             }}
           >
             <button
@@ -1208,13 +1226,7 @@ export default function App() {
                 }
                 onMouseOut={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <h3
-                  style={{
-                    margin: "0 0 15px 0",
-                    fontSize: "18px",
-                    color: "#0ea5e9",
-                  }}
-                >
+                <h3 style={{ margin: "0 0 15px 0", color: "#0ea5e9" }}>
                   {u.name}
                 </h3>
                 <div
@@ -1317,6 +1329,7 @@ export default function App() {
                       background: "#1f2937",
                       color: "#f8fafc",
                       border: "1px solid #374151",
+                      boxShadow: "none",
                     }}
                   >
                     Öffnen
@@ -1334,7 +1347,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: MEIN UNTERNEHMEN --- */}
+      {/* --- REITER: MEIN UNTERNEHMEN (VOLLSTÄNDIG) --- */}
       {aktiverTab === "mein_unternehmen" && activeUnternehmenId && isAdmin && (
         <div className="no-print">
           <div
@@ -2358,7 +2371,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- REITER: SEMINARE (MIT MULTI-SELECT UND LÖSCHEN) --- */}
+      {/* --- REITER: SEMINARE (MIT NEUEM MULTI-SELECT) --- */}
       {aktiverTab === "seminare" && activeUnternehmenId && (
         <div
           className="no-print"
@@ -2501,7 +2514,7 @@ export default function App() {
                             color: "#f8fafc",
                           }}
                         >
-                          Mitarbeiter hinzufügen:
+                          Teilnehmer auswählen:
                         </p>
                         <div
                           style={{
@@ -2564,7 +2577,7 @@ export default function App() {
                               "linear-gradient(135deg, #8b5cf6, #7c3aed)",
                           }}
                         >
-                          Gewählte hinzufügen
+                          Alle Gewählten zuweisen
                         </button>
                       </div>
                     )}
